@@ -1,0 +1,53 @@
+{% extends 'layouts/admin.twig' %}
+{% block title %}Einstellungen{% endblock %}
+{% block content %}
+<section class="panel">
+    <h1>Allgemeine Einstellungen</h1>
+    {% if flash %}<p class="flash ok">{{ flash }}</p>{% endif %}
+    {% if error %}<p class="flash error">{{ error }}</p>{% endif %}
+
+    <form method="post" action="/administrator/einstellungen" enctype="multipart/form-data" class="stack-form">
+        {{ csrf.field()|raw }}
+
+        <fieldset>
+            <legend>Willkommensseite</legend>
+            <label>Willkommenstext
+                <textarea name="welcome_text" rows="8">{{ settings.welcome_text|default('') }}</textarea>
+            </label>
+            <label>Willkommensbild
+                <input type="file" name="welcome_image" accept="image/jpeg,image/png,image/webp,image/gif">
+            </label>
+            {% if settings.welcome_image|default('') %}
+                <p><img class="thumb" src="/uploads/{{ settings.welcome_image }}" alt=""></p>
+                <label class="check"><input type="checkbox" name="remove_welcome_image" value="1"> Bild entfernen</label>
+            {% endif %}
+        </fieldset>
+
+        <fieldset>
+            <legend>Anmeldezeitraum</legend>
+            <label>Start
+                <input type="datetime-local" name="registration_start" value="{{ settings.registration_start|default('')|replace({' ': 'T'})|slice(0, 16) }}">
+            </label>
+            <label>Ende
+                <input type="datetime-local" name="registration_end" value="{{ settings.registration_end|default('')|replace({' ': 'T'})|slice(0, 16) }}">
+            </label>
+            <p class="muted">Leer lassen = kein Limit. Format wird vom Browser gesetzt.</p>
+        </fieldset>
+
+        <fieldset>
+            <legend>E-Mail</legend>
+            <label>Absender-Adresse
+                <input type="email" name="mail_from" value="{{ settings.mail_from|default('') }}">
+            </label>
+            <label>Absender-Name
+                <input type="text" name="mail_from_name" value="{{ settings.mail_from_name|default('') }}">
+            </label>
+            <label>Betreff
+                <input type="text" name="mail_subject" value="{{ settings.mail_subject|default('') }}">
+            </label>
+        </fieldset>
+
+        <button type="submit" class="btn">Speichern</button>
+    </form>
+</section>
+{% endblock %}

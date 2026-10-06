@@ -1,0 +1,13 @@
+{% extends 'layouts/base.twig' %}
+{% block title %}Installation abgeschlossen{% endblock %}
+{% block content %}
+<section class="panel">
+    <h1>Installation erfolgreich</h1>
+    <p>Die Datenbank ist eingerichtet. Sie können sich jetzt im Administrator anmelden.</p>
+    <p>Benutzername: <strong>{{ admin_username }}</strong></p>
+    <p>
+        <a class="btn" href="/administrator/login">Zum Login</a>
+        <a class="btn btn-secondary" href="/">Zur Startseite</a>
+    </p>
+</section>
+{% endblock %}

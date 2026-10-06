@@ -1,0 +1,8 @@
+/vendor/
+/.env
+/storage/install.lock
+/public/uploads/*
+!/public/uploads/.htaccess
+!/public/uploads/.gitkeep
+/composer.phar
+/.phpunit.result.cache

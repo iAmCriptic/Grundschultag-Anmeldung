@@ -1,0 +1,71 @@
+{% extends 'layouts/admin.twig' %}
+{% block title %}{% if fachbereich and fachbereich.id %}Fachbereich bearbeiten{% else %}Neuer Fachbereich{% endif %}{% endblock %}
+{% block content %}
+<section class="panel">
+    <h1>{% if fachbereich and fachbereich.id %}Fachbereich bearbeiten{% else %}Neuer Fachbereich{% endif %}</h1>
+    {% if flash %}<p class="flash ok">{{ flash }}</p>{% endif %}
+    {% if error %}<p class="flash error">{{ error }}</p>{% endif %}
+
+    <form method="post"
+          action="{% if fachbereich and fachbereich.id %}/administrator/fachbereiche/{{ fachbereich.id }}{% else %}/administrator/fachbereiche{% endif %}"
+          enctype="multipart/form-data"
+          class="stack-form">
+        {{ csrf.field()|raw }}
+        <label>Name
+            <input type="text" name="name" required value="{{ fachbereich.name|default('') }}">
+        </label>
+        <label>Teaser-Text
+            <textarea name="teaser_text" rows="5">{{ fachbereich.teaser_text|default('') }}</textarea>
+        </label>
+        <label>Teaser-Bild
+            <input type="file" name="teaser_bild" accept="image/jpeg,image/png,image/webp,image/gif">
+        </label>
+        {% if fachbereich.teaser_bild|default('') %}
+            <p><img class="thumb" src="/uploads/{{ fachbereich.teaser_bild }}" alt=""></p>
+            <label class="check"><input type="checkbox" name="remove_image" value="1"> Bild entfernen</label>
+        {% endif %}
+        <label>Sortierung
+            <input type="number" name="sortierung" value="{{ fachbereich.sortierung|default(0) }}">
+        </label>
+        <label class="check">
+            <input type="checkbox" name="aktiv" value="1" {% if fachbereich is null or fachbereich.aktiv|default(1) %}checked{% endif %}>
+            Aktiv
+        </label>
+        <button type="submit" class="btn">Speichern</button>
+        <a class="btn btn-secondary" href="/administrator/fachbereiche">Zurück</a>
+    </form>
+</section>
+
+{% if fachbereich and fachbereich.id %}
+<section class="panel">
+    <h2>Schienen</h2>
+    {% if schienen is empty %}
+        <p>Noch keine Schienen. Legen Sie mindestens eine an.</p>
+    {% else %}
+        {% for s in schienen %}
+            <form method="post" action="/administrator/fachbereiche/{{ fachbereich.id }}/schienen/{{ s.id }}" class="schiene-row">
+                {{ csrf.field()|raw }}
+                <input type="text" name="name" value="{{ s.name }}" required aria-label="Name">
+                <input type="number" name="kapazitaet" value="{{ s.kapazitaet }}" min="1" required aria-label="Kapazität">
+                <input type="number" name="sortierung" value="{{ s.sortierung }}" aria-label="Sortierung">
+                <span class="muted">{{ s.belegt }}/{{ s.kapazitaet }} belegt</span>
+                <button type="submit" class="btn btn-secondary">Speichern</button>
+            </form>
+            <form method="post" action="/administrator/fachbereiche/{{ fachbereich.id }}/schienen/{{ s.id }}/delete" class="inline-form" onsubmit="return confirm('Schiene löschen?');">
+                {{ csrf.field()|raw }}
+                <button type="submit" class="linkish danger">Löschen</button>
+            </form>
+        {% endfor %}
+    {% endif %}
+
+    <h3>Neue Schiene</h3>
+    <form method="post" action="/administrator/fachbereiche/{{ fachbereich.id }}/schienen" class="schiene-row">
+        {{ csrf.field()|raw }}
+        <input type="text" name="name" placeholder="z. B. Vormittag" required>
+        <input type="number" name="kapazitaet" value="20" min="1" required>
+        <input type="number" name="sortierung" value="0">
+        <button type="submit" class="btn">Hinzufügen</button>
+    </form>
+</section>
+{% endif %}
+{% endblock %}

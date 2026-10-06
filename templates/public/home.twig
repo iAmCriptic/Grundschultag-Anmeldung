@@ -1,0 +1,27 @@
+{% extends 'layouts/base.twig' %}
+{% block title %}Willkommen · {{ app_name }}{% endblock %}
+{% block body_class %}page-home{% endblock %}
+{% block content %}
+<section class="hero">
+    {% if welcome_image %}
+        <div class="hero-media">
+            <img src="/uploads/{{ welcome_image }}" alt="">
+        </div>
+    {% endif %}
+    <div class="hero-copy">
+        <h1>{{ app_name }}</h1>
+        <div class="prose">{{ welcome_text|nl2br }}</div>
+        {% if open %}
+            <p><a class="btn btn-lg" href="/anmelden">Anmelden</a></p>
+        {% else %}
+            <p class="flash">Die Anmeldung ist derzeit geschlossen.</p>
+            {% if registration_start or registration_end %}
+                <p class="muted">
+                    {% if registration_start %}Von {{ registration_start|replace({'T': ' '}) }}{% endif %}
+                    {% if registration_end %} bis {{ registration_end|replace({'T': ' '}) }}{% endif %}
+                </p>
+            {% endif %}
+        {% endif %}
+    </div>
+</section>
+{% endblock %}

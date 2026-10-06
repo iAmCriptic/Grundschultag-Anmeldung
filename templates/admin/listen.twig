@@ -1,0 +1,29 @@
+{% extends 'layouts/admin.twig' %}
+{% block title %}Listen{% endblock %}
+{% block content %}
+<section class="panel">
+    <h1>Listenausgabe</h1>
+    <p>CSV-Export aktiver Anmeldungen (Name, E-Mail, Schiene) je Fachbereich.</p>
+
+    {% if fachbereiche is empty %}
+        <p>Keine Fachbereiche vorhanden.</p>
+    {% else %}
+        <table class="data-table">
+            <thead>
+                <tr><th>Fachbereich</th><th>Aktive Anmeldungen</th><th></th></tr>
+            </thead>
+            <tbody>
+            {% for fb in fachbereiche %}
+                {% set total = 0 %}
+                {% for s in fb.schienen %}{% set total = total + s.belegt %}{% endfor %}
+                <tr>
+                    <td>{{ fb.name }}</td>
+                    <td>{{ total }}</td>
+                    <td><a class="btn btn-secondary" href="/administrator/listen/{{ fb.id }}.csv">CSV herunterladen</a></td>
+                </tr>
+            {% endfor %}
+            </tbody>
+        </table>
+    {% endif %}
+</section>
+{% endblock %}

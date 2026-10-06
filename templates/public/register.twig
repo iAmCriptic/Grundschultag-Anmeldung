@@ -1,0 +1,98 @@
+{% extends 'layouts/base.twig' %}
+{% block title %}Anmelden · {{ app_name }}{% endblock %}
+{% block content %}
+<section class="panel">
+    <h1>Anmeldung</h1>
+    <p>Wählen Sie einen Fachbereich und eine Schiene und geben Sie Ihre Kontaktdaten an.</p>
+
+    {% if error %}<p class="flash error">{{ error }}</p>{% endif %}
+
+    {% if fachbereiche is empty %}
+        <p class="flash">Derzeit sind keine Fachbereiche freigeschaltet.</p>
+        <p><a class="btn btn-secondary" href="/">Zurück</a></p>
+    {% else %}
+    <form method="post" action="/anmelden" class="stack-form" id="register-form">
+        {{ csrf.field()|raw }}
+
+        <label>Fachbereich
+            <select name="fachbereich_id" id="fachbereich_id" required>
+                <option value="">Bitte wählen…</option>
+                {% for fb in fachbereiche %}
+                    <option value="{{ fb.id }}"
+                        {% if selected_fb == fb.id or old.fachbereich_id|default(0) == fb.id %}selected{% endif %}>
+                        {{ fb.name }}
+                    </option>
+                {% endfor %}
+            </select>
+        </label>
+
+        <div id="teaser" class="teaser" hidden>
+            <div class="teaser-media" id="teaser-media"></div>
+            <div class="teaser-text" id="teaser-text"></div>
+        </div>
+
+        <label>Schiene
+            <select name="schiene_id" id="schiene_id" required>
+                <option value="">Zuerst Fachbereich wählen…</option>
+            </select>
+        </label>
+
+        <label>Name
+            <input type="text" name="name" required value="{{ old.name|default('') }}">
+        </label>
+        <label>E-Mail
+            <input type="email" name="email" required value="{{ old.email|default('') }}">
+        </label>
+
+        <button type="submit" class="btn">Anmeldung absenden</button>
+        <p><a href="/">Abbrechen</a></p>
+    </form>
+    {% endif %}
+</section>
+{% endblock %}
+
+{% block scripts %}
+<script>
+const fachbereiche = {{ fachbereiche|json_encode|raw }};
+const oldSchiene = {{ old.schiene_id|default(0)|json_encode|raw }};
+const fbSelect = document.getElementById('fachbereich_id');
+const schieneSelect = document.getElementById('schiene_id');
+const teaser = document.getElementById('teaser');
+const teaserMedia = document.getElementById('teaser-media');
+const teaserText = document.getElementById('teaser-text');
+
+function render() {
+    const id = parseInt(fbSelect.value || '0', 10);
+    const fb = fachbereiche.find(f => parseInt(f.id, 10) === id);
+    schieneSelect.innerHTML = '';
+    if (!fb) {
+        teaser.hidden = true;
+        schieneSelect.innerHTML = '<option value="">Zuerst Fachbereich wählen…</option>';
+        return;
+    }
+    teaser.hidden = false;
+    teaserText.innerHTML = (fb.teaser_text || '').replace(/\n/g, '<br>');
+    teaserMedia.innerHTML = fb.teaser_bild
+        ? '<img src="/uploads/' + fb.teaser_bild + '" alt="">'
+        : '';
+    const placeholder = document.createElement('option');
+    placeholder.value = '';
+    placeholder.textContent = 'Bitte Schiene wählen…';
+    schieneSelect.appendChild(placeholder);
+    (fb.schienen || []).forEach(s => {
+        const frei = Math.max(0, parseInt(s.kapazitaet, 10) - parseInt(s.belegt || 0, 10));
+        const opt = document.createElement('option');
+        opt.value = s.id;
+        opt.textContent = s.name + ' (' + frei + ' frei von ' + s.kapazitaet + ')';
+        if (frei <= 0) {
+            opt.disabled = true;
+            opt.textContent = s.name + ' (ausgebucht)';
+        }
+        if (parseInt(oldSchiene, 10) === parseInt(s.id, 10)) opt.selected = true;
+        schieneSelect.appendChild(opt);
+    });
+}
+fbSelect.addEventListener('change', render);
+render();
+</script>
+{% endblock %}

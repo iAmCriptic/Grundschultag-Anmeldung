@@ -1,0 +1,135 @@
+<?php
+
+declare(strict_types=1);
+
+use App\Controllers\Admin\AuthController;
+use App\Controllers\Admin\DashboardController;
+use App\Controllers\Admin\ExportController;
+use App\Controllers\Admin\FachbereichController;
+use App\Controllers\Admin\SettingsController;
+use App\Controllers\PublicController;
+use App\Controllers\SetupController;
+use App\Middleware\AdminAuthMiddleware;
+use App\Services\AnmeldungService;
+use App\Services\AuthService;
+use App\Services\CsrfService;
+use App\Services\ExportService;
+use App\Services\FachbereichService;
+use App\Services\InstallerService;
+use App\Services\MailService;
+use App\Services\SettingsService;
+use App\Services\UploadService;
+use Psr\Container\ContainerInterface;
+use Slim\Views\Twig;
+
+$root = dirname(__DIR__);
+$settings = require __DIR__ . '/settings.php';
+
+return [
+    'settings' => $settings,
+    'root_path' => $root,
+
+    PDO::class => static function (ContainerInterface $c): PDO {
+        $db = $c->get('settings')['db'];
+        if ($db['name'] === '' || $db['user'] === '') {
+            throw new RuntimeException('Datenbank ist noch nicht konfiguriert.');
+        }
+        $dsn = sprintf(
+            'mysql:host=%s;port=%s;dbname=%s;charset=utf8mb4',
+            $db['host'],
+            $db['port'],
+            $db['name']
+        );
+        $pdo = new PDO($dsn, $db['user'], $db['pass'], [
+            PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION,
+            PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC,
+            PDO::ATTR_EMULATE_PREPARES => false,
+            PDO::ATTR_PERSISTENT => false,
+        ]);
+        return $pdo;
+    },
+
+    Twig::class => static function (ContainerInterface $c): Twig {
+        $twig = Twig::create($c->get('root_path') . '/templates', [
+            'cache' => false,
+            'debug' => (bool) ($c->get('settings')['display_error_details'] ?? false),
+        ]);
+        $twig->getEnvironment()->addGlobal('app_name', $c->get('settings')['app_name']);
+        $twig->getEnvironment()->addGlobal('csrf', $c->get(CsrfService::class));
+        return $twig;
+    },
+
+    CsrfService::class => static fn () => new CsrfService(),
+    InstallerService::class => static fn (ContainerInterface $c) => new InstallerService($c->get('root_path')),
+    MailService::class => static fn (ContainerInterface $c) => new MailService($c->get('settings')),
+    SettingsService::class => static fn (ContainerInterface $c) => new SettingsService($c->get(PDO::class)),
+    AuthService::class => static fn (ContainerInterface $c) => new AuthService($c->get(PDO::class)),
+    FachbereichService::class => static fn (ContainerInterface $c) => new FachbereichService($c->get(PDO::class)),
+    AnmeldungService::class => static function (ContainerInterface $c) {
+        return new AnmeldungService(
+            $c->get(PDO::class),
+            $c->get(SettingsService::class),
+            $c->get(MailService::class),
+            $c->get('settings')
+        );
+    },
+    ExportService::class => static fn (ContainerInterface $c) => new ExportService($c->get(PDO::class)),
+    UploadService::class => static fn (ContainerInterface $c) => new UploadService($c->get('root_path') . '/public/uploads'),
+
+    SetupController::class => static function (ContainerInterface $c) {
+        return new SetupController(
+            $c->get(Twig::class),
+            $c->get(InstallerService::class),
+            $c->get(MailService::class),
+            $c->get(CsrfService::class),
+            $c->get('root_path')
+        );
+    },
+    PublicController::class => static function (ContainerInterface $c) {
+        return new PublicController(
+            $c->get(Twig::class),
+            $c->get(SettingsService::class),
+            $c->get(FachbereichService::class),
+            $c->get(AnmeldungService::class),
+            $c->get(CsrfService::class)
+        );
+    },
+    AuthController::class => static function (ContainerInterface $c) {
+        return new AuthController(
+            $c->get(Twig::class),
+            $c->get(AuthService::class),
+            $c->get(CsrfService::class)
+        );
+    },
+    DashboardController::class => static function (ContainerInterface $c) {
+        return new DashboardController(
+            $c->get(Twig::class),
+            $c->get(FachbereichService::class),
+            $c->get(AnmeldungService::class)
+        );
+    },
+    FachbereichController::class => static function (ContainerInterface $c) {
+        return new FachbereichController(
+            $c->get(Twig::class),
+            $c->get(FachbereichService::class),
+            $c->get(UploadService::class),
+            $c->get(CsrfService::class)
+        );
+    },
+    SettingsController::class => static function (ContainerInterface $c) {
+        return new SettingsController(
+            $c->get(Twig::class),
+            $c->get(SettingsService::class),
+            $c->get(UploadService::class),
+            $c->get(CsrfService::class)
+        );
+    },
+    ExportController::class => static function (ContainerInterface $c) {
+        return new ExportController(
+            $c->get(Twig::class),
+            $c->get(FachbereichService::class),
+            $c->get(ExportService::class)
+        );
+    },
+    AdminAuthMiddleware::class => static fn () => new AdminAuthMiddleware(),
+];

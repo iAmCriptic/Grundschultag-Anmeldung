@@ -1,0 +1,19 @@
+{% extends 'layouts/base.twig' %}
+{% block title %}Admin Login{% endblock %}
+{% block body_class %}admin-body{% endblock %}
+{% block content %}
+<section class="panel narrow">
+    <h1>Administrator</h1>
+    {% if error %}<p class="flash error">{{ error }}</p>{% endif %}
+    <form method="post" action="/administrator/login" class="stack-form">
+        {{ csrf.field()|raw }}
+        <label>Benutzername
+            <input type="text" name="username" required autocomplete="username">
+        </label>
+        <label>Passwort
+            <input type="password" name="password" required autocomplete="current-password">
+        </label>
+        <button type="submit" class="btn">Anmelden</button>
+    </form>
+</section>
+{% endblock %}

@@ -1,0 +1,142 @@
+{% extends 'layouts/base.twig' %}
+{% block title %}Setup · {{ app_name }}{% endblock %}
+{% block body_class %}setup-page{% endblock %}
+{% block content %}
+<section class="panel">
+    <h1>Installation</h1>
+
+    {% if installed %}
+        <p class="flash ok">Die Anwendung ist bereits installiert. Der Setup-Assistent ist gesperrt.</p>
+        <p><a class="btn" href="/">Zur Startseite</a>
+           <a class="btn btn-secondary" href="/administrator">Zum Administrator</a></p>
+    {% else %}
+        {% if error %}<p class="flash error">{{ error }}</p>{% endif %}
+        <p>Richten Sie Datenbank und E-Mail ein. Die Zugangsdaten finden Sie im IONOS-Kundencenter (MariaDB).</p>
+
+        <form method="post" action="/setup/install" id="setup-form" class="stack-form">
+            {{ csrf.field()|raw }}
+
+            <fieldset>
+                <legend>Anwendung</legend>
+                <label>App-Name
+                    <input type="text" name="app_name" value="{{ defaults.app_name|default('Grundschultag Anmeldung') }}" required>
+                </label>
+                <label>Öffentliche URL (ohne Schrägstrich am Ende)
+                    <input type="url" name="app_url" placeholder="https://ihre-domain.de" value="{{ defaults.app_url|default('') }}" required>
+                </label>
+            </fieldset>
+
+            <fieldset>
+                <legend>Datenbank (MariaDB)</legend>
+                <div class="grid-2">
+                    <label>Host
+                        <input type="text" name="db_host" id="db_host" value="{{ defaults.db_host|default('localhost') }}" required>
+                    </label>
+                    <label>Port
+                        <input type="text" name="db_port" id="db_port" value="{{ defaults.db_port|default('3306') }}" required>
+                    </label>
+                </div>
+                <label>Datenbankname
+                    <input type="text" name="db_name" id="db_name" value="{{ defaults.db_name|default('') }}" required>
+                </label>
+                <label>Benutzer
+                    <input type="text" name="db_user" id="db_user" value="{{ defaults.db_user|default('') }}" required>
+                </label>
+                <label>Passwort
+                    <input type="password" name="db_pass" id="db_pass" value="{{ defaults.db_pass|default('') }}">
+                </label>
+                <button type="button" class="btn btn-secondary" id="btn-test-db">Verbindung prüfen</button>
+                <p class="status" id="db-status" aria-live="polite"></p>
+            </fieldset>
+
+            <fieldset>
+                <legend>E-Mail</legend>
+                <label>Absender-Adresse
+                    <input type="email" name="mail_from" id="mail_from" value="{{ defaults.mail_from|default('') }}" required>
+                </label>
+                <label>Absender-Name
+                    <input type="text" name="mail_from_name" id="mail_from_name" value="{{ defaults.mail_from_name|default('Grundschultag') }}">
+                </label>
+                <label>Betreff Bestätigungsmail
+                    <input type="text" name="mail_subject" value="{{ defaults.mail_subject|default('Ihre Anmeldung zum Grundschultag') }}">
+                </label>
+                <label>Test an E-Mail senden
+                    <input type="email" name="mail_test_to" id="mail_test_to" placeholder="ihre@adresse.de">
+                </label>
+                <button type="button" class="btn btn-secondary" id="btn-test-mail">Testmail senden</button>
+                <p class="status" id="mail-status" aria-live="polite"></p>
+            </fieldset>
+
+            <fieldset>
+                <legend>Administrator</legend>
+                <label>Benutzername
+                    <input type="text" name="admin_username" value="{{ defaults.admin_username|default('admin') }}" required>
+                </label>
+                <label>Passwort (mind. 8 Zeichen)
+                    <input type="password" name="admin_password" required minlength="8">
+                </label>
+                <label>Passwort wiederholen
+                    <input type="password" name="admin_password_confirm" required minlength="8">
+                </label>
+            </fieldset>
+
+            <button type="submit" class="btn">Installieren</button>
+        </form>
+    {% endif %}
+</section>
+{% endblock %}
+
+{% block scripts %}
+{% if not installed %}
+<script>
+const csrf = document.querySelector('input[name="_csrf"]').value;
+
+async function postJson(url, body) {
+    const res = await fetch(url, {
+        method: 'POST',
+        headers: {'Content-Type': 'application/x-www-form-urlencoded'},
+        body: new URLSearchParams({...body, _csrf: csrf})
+    });
+    return res.json();
+}
+
+document.getElementById('btn-test-db').addEventListener('click', async () => {
+    const status = document.getElementById('db-status');
+    status.textContent = 'Prüfe…';
+    status.className = 'status';
+    try {
+        const data = await postJson('/setup/test-db', {
+            db_host: document.getElementById('db_host').value,
+            db_port: document.getElementById('db_port').value,
+            db_name: document.getElementById('db_name').value,
+            db_user: document.getElementById('db_user').value,
+            db_pass: document.getElementById('db_pass').value
+        });
+        status.textContent = data.message;
+        status.className = 'status ' + (data.ok ? 'ok' : 'error');
+    } catch (e) {
+        status.textContent = 'Anfrage fehlgeschlagen.';
+        status.className = 'status error';
+    }
+});
+
+document.getElementById('btn-test-mail').addEventListener('click', async () => {
+    const status = document.getElementById('mail-status');
+    status.textContent = 'Sende…';
+    status.className = 'status';
+    try {
+        const data = await postJson('/setup/test-mail', {
+            mail_from: document.getElementById('mail_from').value,
+            mail_from_name: document.getElementById('mail_from_name').value,
+            mail_test_to: document.getElementById('mail_test_to').value
+        });
+        status.textContent = data.message;
+        status.className = 'status ' + (data.ok ? 'ok' : 'error');
+    } catch (e) {
+        status.textContent = 'Anfrage fehlgeschlagen.';
+        status.className = 'status error';
+    }
+});
+</script>
+{% endif %}
+{% endblock %}

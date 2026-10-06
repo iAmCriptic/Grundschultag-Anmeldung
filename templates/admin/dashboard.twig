@@ -1,0 +1,40 @@
+{% extends 'layouts/admin.twig' %}
+{% block title %}Übersicht{% endblock %}
+{% block content %}
+<section class="panel">
+    <h1>Übersicht</h1>
+    <p>Angemeldet als <strong>{{ admin_username }}</strong>. Aktive Anmeldungen: <strong>{{ active_count }}</strong></p>
+
+    <div class="card-grid">
+        <a class="card-link" href="/administrator/fachbereiche">Fachbereiche verwalten</a>
+        <a class="card-link" href="/administrator/listen">Listen herunterladen</a>
+        <a class="card-link" href="/administrator/einstellungen">Einstellungen</a>
+    </div>
+
+    <h2>Belegung</h2>
+    {% if fachbereiche is empty %}
+        <p>Noch keine Fachbereiche angelegt.</p>
+    {% else %}
+        <table class="data-table">
+            <thead>
+                <tr><th>Fachbereich</th><th>Status</th><th>Schienen</th></tr>
+            </thead>
+            <tbody>
+            {% for fb in fachbereiche %}
+                <tr>
+                    <td><a href="/administrator/fachbereiche/{{ fb.id }}">{{ fb.name }}</a></td>
+                    <td>{% if fb.aktiv %}aktiv{% else %}inaktiv{% endif %}</td>
+                    <td>
+                        {% for s in fb.schienen %}
+                            {{ s.name }}: {{ s.belegt }}/{{ s.kapazitaet }}{% if not loop.last %}; {% endif %}
+                        {% else %}
+                            —
+                        {% endfor %}
+                    </td>
+                </tr>
+            {% endfor %}
+            </tbody>
+        </table>
+    {% endif %}
+</section>
+{% endblock %}
