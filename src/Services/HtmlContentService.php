@@ -158,7 +158,7 @@ final class HtmlContentService
 
             if ($lower === 'href' && $tag === 'a') {
                 $href = trim($value);
-                if ($href === '' || preg_match('#^(https?:|mailto:|/|#)#i', $href) !== 1) {
+                if ($href === '' || preg_match('{^(https?:|mailto:|/|#)}i', $href) !== 1) {
                     $element->removeAttribute($name);
                     continue;
                 }

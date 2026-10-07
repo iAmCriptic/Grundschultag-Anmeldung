@@ -18,6 +18,8 @@
             height: 280,
             convert_urls: false,
             entity_encoding: 'raw',
+            // Enter = nächste Zeile (BR), Shift+Enter = neuer Absatz
+            newline_behavior: 'linebreak',
             plugins: 'lists link autoresize',
             toolbar:
                 'bold italic underline strikethrough | forecolor backcolor | fontsize | ' +
@@ -26,6 +28,12 @@
             content_style:
                 'body { font-family: system-ui, -apple-system, Segoe UI, sans-serif; font-size: 16px; line-height: 1.5; }',
             setup: function (editor) {
+                editor.on('keydown', function (e) {
+                    if (e.key === 'Enter' && !e.shiftKey && !e.ctrlKey && !e.altKey && !e.metaKey) {
+                        e.preventDefault();
+                        editor.execCommand('InsertLineBreak');
+                    }
+                });
                 editor.on('change input Undo Redo', function () {
                     editor.save();
                 });

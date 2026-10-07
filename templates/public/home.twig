@@ -12,7 +12,7 @@
         <h1 class="h2 mb-3">{{ app_name }}</h1>
         <div class="mb-3 rich-content">{{ welcome_text|rich }}</div>
         {% if registration_start and registration_end %}
-            <p class="fw-semibold text-uppercase mb-3">
+            <p class="fw-semibold mb-3">
                 Anmeldung möglich vom {{ registration_start|date('d.m.Y (H:i)') }} bis {{ registration_end|date('d.m.Y (H:i)') }}
             </p>
         {% endif %}
