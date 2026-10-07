@@ -45,6 +45,7 @@ return static function (App $app): void {
             $admin->post('/fachbereiche/{id}/toggle', [FachbereichController::class, 'toggle']);
             $admin->post('/fachbereiche/{id}/delete', [FachbereichController::class, 'delete']);
             $admin->post('/fachbereiche/{id}/schienen', [FachbereichController::class, 'addSchiene']);
+            $admin->post('/fachbereiche/{id}/schienen/reorder', [FachbereichController::class, 'reorderSchienen']);
             $admin->post('/fachbereiche/{id}/schienen/{schieneId}', [FachbereichController::class, 'updateSchiene']);
             $admin->post('/fachbereiche/{id}/schienen/{schieneId}/delete', [FachbereichController::class, 'deleteSchiene']);
 

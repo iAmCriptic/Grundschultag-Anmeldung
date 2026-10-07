@@ -199,8 +199,7 @@ final class FachbereichController
             $this->fachbereiche->addSchiene(
                 $id,
                 trim((string) ($data['name'] ?? '')),
-                (int) ($data['kapazitaet'] ?? 20),
-                (int) ($data['sortierung'] ?? 0)
+                (int) ($data['kapazitaet'] ?? 20)
             );
             $_SESSION['flash'] = 'Schiene hinzugefügt.';
         } catch (\Throwable $e) {
@@ -222,13 +221,46 @@ final class FachbereichController
             $this->fachbereiche->updateSchiene(
                 (int) $args['schieneId'],
                 trim((string) ($data['name'] ?? '')),
-                (int) ($data['kapazitaet'] ?? 20),
-                (int) ($data['sortierung'] ?? 0)
+                (int) ($data['kapazitaet'] ?? 20)
             );
             $_SESSION['flash'] = 'Schiene gespeichert.';
         } catch (\Throwable $e) {
             $_SESSION['flash'] = $e->getMessage();
         }
+        return $response->withHeader('Location', '/administrator/fachbereiche/' . $id)->withStatus(302);
+    }
+
+    public function reorderSchienen(Request $request, Response $response, array $args): Response
+    {
+        $id = (int) $args['id'];
+        $denied = $this->requireFachbereichAccess($response, $id);
+        if ($denied !== null) {
+            return $denied;
+        }
+
+        $data = (array) $request->getParsedBody();
+        $order = $data['order'] ?? [];
+        if (!is_array($order)) {
+            $order = [];
+        }
+
+        try {
+            $this->fachbereiche->reorderSchienen($id, array_map('intval', $order));
+            $isAjax = strtolower($request->getHeaderLine('X-Requested-With')) === 'xmlhttprequest';
+            if ($isAjax) {
+                $response->getBody()->write(json_encode(['ok' => true], JSON_THROW_ON_ERROR));
+                return $response->withHeader('Content-Type', 'application/json');
+            }
+            $_SESSION['flash'] = 'Reihenfolge gespeichert.';
+        } catch (\Throwable $e) {
+            $isAjax = strtolower($request->getHeaderLine('X-Requested-With')) === 'xmlhttprequest';
+            if ($isAjax) {
+                $response->getBody()->write(json_encode(['ok' => false, 'error' => $e->getMessage()], JSON_THROW_ON_ERROR));
+                return $response->withHeader('Content-Type', 'application/json')->withStatus(400);
+            }
+            $_SESSION['flash'] = $e->getMessage();
+        }
+
         return $response->withHeader('Location', '/administrator/fachbereiche/' . $id)->withStatus(302);
     }
 

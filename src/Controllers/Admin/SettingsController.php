@@ -113,7 +113,16 @@ final class SettingsController
                 throw new \RuntimeException('Datenschutz-URL muss mit http:// oder https:// beginnen.');
             }
 
+            $siteTitle = trim((string) ($data['site_title'] ?? ''));
+            if ($siteTitle === '') {
+                throw new \RuntimeException('Bitte einen Seitentitel angeben.');
+            }
+            if (mb_strlen($siteTitle) > 150) {
+                throw new \RuntimeException('Der Seitentitel darf höchstens 150 Zeichen lang sein.');
+            }
+
             $this->settings->setMany([
+                'site_title' => $siteTitle,
                 'welcome_text' => (string) ($data['welcome_text'] ?? ''),
                 'welcome_image' => $image,
                 'site_logo' => $logo,
@@ -128,6 +137,7 @@ final class SettingsController
                 'datenschutz_text' => (string) ($data['datenschutz_text'] ?? ''),
             ]);
 
+            $this->view->getEnvironment()->addGlobal('app_name', $siteTitle);
             $this->view->getEnvironment()->addGlobal('site_logo', $logo);
             $impressumHref = $this->settings->legalHref('impressum_url', 'impressum_text', '/impressum');
             $datenschutzHref = $this->settings->legalHref('datenschutz_url', 'datenschutz_text', '/datenschutz');

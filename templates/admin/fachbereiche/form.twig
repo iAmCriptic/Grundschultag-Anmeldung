@@ -1,6 +1,10 @@
 {% extends 'layouts/admin.twig' %}
 {% block title %}{% if fachbereich and fachbereich.id %}Fachbereich bearbeiten{% else %}Neuer Fachbereich{% endif %}{% endblock %}
 {% block content %}
+<p class="mb-3">
+    <a class="btn btn-outline-primary" href="/administrator/fachbereiche">← Zurück</a>
+</p>
+
 <section class="card app-card mb-4">
     <div class="card-body p-4">
         <h1 class="h2 mb-3">{% if fachbereich and fachbereich.id %}Fachbereich bearbeiten{% else %}Neuer Fachbereich{% endif %}</h1>
@@ -38,10 +42,7 @@
                 <input class="form-check-input" type="checkbox" name="aktiv" value="1" id="aktiv" {% if fachbereich is null or fachbereich.aktiv|default(1) %}checked{% endif %}>
                 <label class="form-check-label" for="aktiv">Aktiv</label>
             </div>
-            <div class="d-flex flex-wrap gap-2">
-                <button type="submit" class="btn btn-primary">Speichern</button>
-                <a class="btn btn-outline-primary" href="/administrator/fachbereiche">Zurück</a>
-            </div>
+            <button type="submit" class="btn btn-primary">Speichern</button>
         </form>
     </div>
 </section>
@@ -53,43 +54,43 @@
         {% if schienen is empty %}
             <p>Noch keine Schienen. Legen Sie mindestens eine an.</p>
         {% else %}
-            {% for s in schienen %}
-                <form method="post" action="/administrator/fachbereiche/{{ fachbereich.id }}/schienen/{{ s.id }}" class="row g-2 align-items-center mb-2">
-                    {{ csrf.field()|raw }}
-                    <div class="col-md-4">
-                        <input class="form-control" type="text" name="name" value="{{ s.name }}" required aria-label="Name">
+            <p class="text-muted small mb-3">Reihenfolge per Drag &amp; Drop ändern.</p>
+            <div id="schienen-list" class="schienen-list" data-reorder-url="/administrator/fachbereiche/{{ fachbereich.id }}/schienen/reorder" data-csrf="{{ csrf.token() }}">
+                {% for s in schienen %}
+                    <div class="schiene-row" data-id="{{ s.id }}">
+                        <button type="button" class="schiene-drag" title="Ziehen zum Sortieren" aria-label="Ziehen zum Sortieren" draggable="true">⋮⋮</button>
+                        <form method="post" action="/administrator/fachbereiche/{{ fachbereich.id }}/schienen/{{ s.id }}" class="schiene-edit-form row g-2 align-items-center flex-grow-1">
+                            {{ csrf.field()|raw }}
+                            <div class="col-md-5">
+                                <input class="form-control" type="text" name="name" value="{{ s.name }}" required aria-label="Name">
+                            </div>
+                            <div class="col-md-2">
+                                <input class="form-control" type="number" name="kapazitaet" value="{{ s.kapazitaet }}" min="1" required aria-label="Kapazität">
+                            </div>
+                            <div class="col-md-3">
+                                <span class="text-muted small">{{ s.belegt }}/{{ s.kapazitaet }} belegt</span>
+                            </div>
+                            <div class="col-md-2">
+                                <button type="submit" class="btn btn-outline-primary btn-sm">Speichern</button>
+                            </div>
+                        </form>
+                        <form method="post" action="/administrator/fachbereiche/{{ fachbereich.id }}/schienen/{{ s.id }}/delete" class="schiene-delete-form" onsubmit="return confirm('Schiene löschen?');">
+                            {{ csrf.field()|raw }}
+                            <button type="submit" class="btn btn-link btn-sm text-danger p-0">Löschen</button>
+                        </form>
                     </div>
-                    <div class="col-md-2">
-                        <input class="form-control" type="number" name="kapazitaet" value="{{ s.kapazitaet }}" min="1" required aria-label="Kapazität">
-                    </div>
-                    <div class="col-md-2">
-                        <input class="form-control" type="number" name="sortierung" value="{{ s.sortierung }}" aria-label="Sortierung">
-                    </div>
-                    <div class="col-md-2">
-                        <span class="text-muted small">{{ s.belegt }}/{{ s.kapazitaet }} belegt</span>
-                    </div>
-                    <div class="col-md-2">
-                        <button type="submit" class="btn btn-outline-primary btn-sm">Speichern</button>
-                    </div>
-                </form>
-                <form method="post" action="/administrator/fachbereiche/{{ fachbereich.id }}/schienen/{{ s.id }}/delete" class="mb-3" onsubmit="return confirm('Schiene löschen?');">
-                    {{ csrf.field()|raw }}
-                    <button type="submit" class="btn btn-link btn-sm text-danger p-0">Löschen</button>
-                </form>
-            {% endfor %}
+                {% endfor %}
+            </div>
         {% endif %}
 
         <h3 class="h5 mt-4">Neue Schiene</h3>
         <form method="post" action="/administrator/fachbereiche/{{ fachbereich.id }}/schienen" class="row g-2 align-items-center">
             {{ csrf.field()|raw }}
-            <div class="col-md-4">
+            <div class="col-md-5">
                 <input class="form-control" type="text" name="name" placeholder="z. B. Vormittag" required>
             </div>
             <div class="col-md-2">
                 <input class="form-control" type="number" name="kapazitaet" value="20" min="1" required>
-            </div>
-            <div class="col-md-2">
-                <input class="form-control" type="number" name="sortierung" value="0">
             </div>
             <div class="col-md-2">
                 <button type="submit" class="btn btn-primary">Hinzufügen</button>
@@ -97,5 +98,83 @@
         </form>
     </div>
 </section>
+{% endif %}
+{% endblock %}
+
+{% block scripts %}
+{% if fachbereich and fachbereich.id and schienen is not empty %}
+<script>
+(function () {
+    var list = document.getElementById('schienen-list');
+    if (!list) return;
+
+    var dragEl = null;
+    var reorderUrl = list.getAttribute('data-reorder-url');
+    var csrf = list.getAttribute('data-csrf');
+
+    list.querySelectorAll('.schiene-row').forEach(function (row) {
+        var handle = row.querySelector('.schiene-drag');
+        if (!handle) return;
+
+        handle.addEventListener('dragstart', function (e) {
+            dragEl = row;
+            row.classList.add('is-dragging');
+            if (e.dataTransfer) {
+                e.dataTransfer.effectAllowed = 'move';
+                e.dataTransfer.setData('text/plain', row.getAttribute('data-id') || '');
+            }
+        });
+        handle.addEventListener('dragend', function () {
+            row.classList.remove('is-dragging');
+            list.querySelectorAll('.schiene-row').forEach(function (r) {
+                r.classList.remove('drag-over');
+            });
+            dragEl = null;
+            saveOrder();
+        });
+        row.addEventListener('dragover', function (e) {
+            e.preventDefault();
+            if (!dragEl || dragEl === row) return;
+            row.classList.add('drag-over');
+            var rect = row.getBoundingClientRect();
+            var before = (e.clientY - rect.top) < rect.height / 2;
+            if (before) {
+                list.insertBefore(dragEl, row);
+            } else {
+                list.insertBefore(dragEl, row.nextSibling);
+            }
+        });
+        row.addEventListener('dragleave', function () {
+            row.classList.remove('drag-over');
+        });
+        row.addEventListener('drop', function (e) {
+            e.preventDefault();
+            row.classList.remove('drag-over');
+        });
+    });
+
+    function saveOrder() {
+        var ids = Array.prototype.map.call(list.querySelectorAll('.schiene-row'), function (row) {
+            return parseInt(row.getAttribute('data-id'), 10);
+        }).filter(function (id) { return id > 0; });
+
+        var body = new URLSearchParams();
+        body.set('_csrf', csrf || '');
+        ids.forEach(function (id) { body.append('order[]', String(id)); });
+
+        fetch(reorderUrl, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/x-www-form-urlencoded',
+                'X-Requested-With': 'XMLHttpRequest'
+            },
+            body: body.toString(),
+            credentials: 'same-origin'
+        }).catch(function () {
+            // still usable; next page load shows previous order
+        });
+    }
+})();
+</script>
 {% endif %}
 {% endblock %}

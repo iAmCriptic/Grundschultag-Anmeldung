@@ -61,6 +61,7 @@ final class InstallerService
         $pdo->exec($schema);
 
         $defaults = [
+            'site_title' => $app['app_name'],
             'welcome_text' => "Willkommen zur Anmeldung für den Grundschultag.\n\nBitte melden Sie sich über den Button unten an.",
             'welcome_image' => '',
             'site_logo' => '',

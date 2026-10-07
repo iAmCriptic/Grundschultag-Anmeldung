@@ -57,7 +57,7 @@ return [
             'cache' => false,
             'debug' => (bool) ($c->get('settings')['display_error_details'] ?? false),
         ]);
-        $twig->getEnvironment()->addGlobal('app_name', $c->get('settings')['app_name']);
+        $appName = (string) ($c->get('settings')['app_name'] ?? 'Grundschultag Anmeldung');
         $twig->getEnvironment()->addGlobal('csrf', $c->get(CsrfService::class));
         $siteLogo = '';
         $impressumHref = '';
@@ -66,6 +66,10 @@ return [
             $db = $c->get('settings')['db'] ?? [];
             if (($db['name'] ?? '') !== '' && is_file($c->get('root_path') . '/.env')) {
                 $settingsService = $c->get(SettingsService::class);
+                $savedTitle = trim($settingsService->get('site_title'));
+                if ($savedTitle !== '') {
+                    $appName = $savedTitle;
+                }
                 $siteLogo = $settingsService->get('site_logo');
                 $impressumHref = $settingsService->legalHref('impressum_url', 'impressum_text', '/impressum');
                 $datenschutzHref = $settingsService->legalHref('datenschutz_url', 'datenschutz_text', '/datenschutz');
@@ -75,6 +79,7 @@ return [
             $impressumHref = '';
             $datenschutzHref = '';
         }
+        $twig->getEnvironment()->addGlobal('app_name', $appName);
         $twig->getEnvironment()->addGlobal('site_logo', $siteLogo);
         $twig->getEnvironment()->addGlobal('impressum_href', $impressumHref);
         $twig->getEnvironment()->addGlobal('datenschutz_href', $datenschutzHref);
@@ -128,7 +133,8 @@ return [
             $c->get(SettingsService::class),
             $c->get(FachbereichService::class),
             $c->get(AnmeldungService::class),
-            $c->get(CsrfService::class)
+            $c->get(CsrfService::class),
+            $c->get(AuthService::class)
         );
     },
     AuthController::class => static function (ContainerInterface $c) {

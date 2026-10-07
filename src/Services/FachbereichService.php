@@ -123,8 +123,16 @@ final class FachbereichService
         $this->pdo->prepare('DELETE FROM fachbereiche WHERE id = :id')->execute(['id' => $id]);
     }
 
-    public function addSchiene(int $fachbereichId, string $name, int $kapazitaet, int $sortierung = 0): int
+    public function addSchiene(int $fachbereichId, string $name, int $kapazitaet, ?int $sortierung = null): int
     {
+        if ($sortierung === null) {
+            $maxStmt = $this->pdo->prepare(
+                'SELECT COALESCE(MAX(sortierung), -1) FROM schienen WHERE fachbereich_id = :fb'
+            );
+            $maxStmt->execute(['fb' => $fachbereichId]);
+            $sortierung = (int) $maxStmt->fetchColumn() + 1;
+        }
+
         $stmt = $this->pdo->prepare(
             'INSERT INTO schienen (fachbereich_id, name, kapazitaet, sortierung)
              VALUES (:fb, :name, :kap, :sort)'
@@ -138,17 +146,46 @@ final class FachbereichService
         return (int) $this->pdo->lastInsertId();
     }
 
-    public function updateSchiene(int $schieneId, string $name, int $kapazitaet, int $sortierung = 0): void
+    public function updateSchiene(int $schieneId, string $name, int $kapazitaet): void
     {
         $stmt = $this->pdo->prepare(
-            'UPDATE schienen SET name = :name, kapazitaet = :kap, sortierung = :sort WHERE id = :id'
+            'UPDATE schienen SET name = :name, kapazitaet = :kap WHERE id = :id'
         );
         $stmt->execute([
             'id' => $schieneId,
             'name' => $name,
             'kap' => max(1, $kapazitaet),
-            'sort' => $sortierung,
         ]);
+    }
+
+    /**
+     * @param list<int> $orderedIds
+     */
+    public function reorderSchienen(int $fachbereichId, array $orderedIds): void
+    {
+        $existing = $this->schienenFor($fachbereichId);
+        $existingIds = array_map(static fn (array $row): int => (int) $row['id'], $existing);
+        $orderedIds = array_values(array_unique(array_map('intval', $orderedIds)));
+
+        if ($orderedIds === [] || count($orderedIds) !== count($existingIds)) {
+            throw new RuntimeException('Ungültige Schienen-Reihenfolge.');
+        }
+        foreach ($orderedIds as $id) {
+            if (!in_array($id, $existingIds, true)) {
+                throw new RuntimeException('Ungültige Schienen-Reihenfolge.');
+            }
+        }
+
+        $stmt = $this->pdo->prepare(
+            'UPDATE schienen SET sortierung = :sort WHERE id = :id AND fachbereich_id = :fb'
+        );
+        foreach ($orderedIds as $index => $id) {
+            $stmt->execute([
+                'sort' => $index,
+                'id' => $id,
+                'fb' => $fachbereichId,
+            ]);
+        }
     }
 
     public function deleteSchiene(int $schieneId): void

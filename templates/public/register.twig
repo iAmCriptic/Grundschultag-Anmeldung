@@ -6,6 +6,10 @@
         <h1 class="h2 mb-3">Anmeldung</h1>
         <p>Wählen Sie einen Fachbereich und eine Schiene und geben Sie Ihre Kontaktdaten an.</p>
 
+        {% if admin_test_mode|default(false) %}
+            <div class="alert alert-info">Testmodus: Die öffentliche Anmeldung ist geschlossen. Als Administrator können Sie den Ablauf trotzdem prüfen.</div>
+        {% endif %}
+
         {% if error %}<div class="alert alert-danger">{{ error }}</div>{% endif %}
 
         {% if fachbereiche is empty %}

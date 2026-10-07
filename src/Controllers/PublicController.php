@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Controllers;
 
 use App\Services\AnmeldungService;
+use App\Services\AuthService;
 use App\Services\CsrfService;
 use App\Services\FachbereichService;
 use App\Services\SettingsService;
@@ -19,7 +20,8 @@ final class PublicController
         private readonly SettingsService $settings,
         private readonly FachbereichService $fachbereiche,
         private readonly AnmeldungService $anmeldungen,
-        private readonly CsrfService $csrf
+        private readonly CsrfService $csrf,
+        private readonly AuthService $auth
     ) {
     }
 
@@ -32,56 +34,53 @@ final class PublicController
             'open' => $this->settings->isRegistrationOpen(),
             'registration_start' => $all['registration_start'] ?? '',
             'registration_end' => $all['registration_end'] ?? '',
+            'admin_logged_in' => $this->auth->check(),
         ]);
     }
 
     public function registerForm(Request $request, Response $response): Response
     {
-        if (!$this->settings->isRegistrationOpen()) {
+        $open = $this->settings->isRegistrationOpen();
+        $adminTest = $this->auth->check();
+        if (!$open && !$adminTest) {
             return $this->view->render($response, 'public/closed.twig');
         }
 
-        $list = $this->fachbereiche->all(true);
-        $withSchienen = [];
-        foreach ($list as $fb) {
-            $schienen = $this->fachbereiche->schienenFor((int) $fb['id']);
-            $fb['schienen'] = $schienen;
-            $withSchienen[] = $fb;
-        }
-
-        $params = $request->getQueryParams();
         return $this->view->render($response, 'public/register.twig', [
-            'fachbereiche' => $withSchienen,
-            'selected_fb' => isset($params['fb']) ? (int) $params['fb'] : null,
+            'fachbereiche' => $this->activeFachbereicheWithSchienen(),
+            'selected_fb' => isset($request->getQueryParams()['fb']) ? (int) $request->getQueryParams()['fb'] : null,
             'error' => null,
             'old' => [],
+            'admin_test_mode' => !$open && $adminTest,
         ]);
     }
 
     public function registerSubmit(Request $request, Response $response): Response
     {
         $data = (array) $request->getParsedBody();
+        $open = $this->settings->isRegistrationOpen();
+        $adminTest = $this->auth->check();
+
+        if (!$open && !$adminTest) {
+            return $this->view->render($response, 'public/closed.twig');
+        }
+
         try {
             $anmeldung = $this->anmeldungen->register([
                 'name' => (string) ($data['name'] ?? ''),
                 'email' => (string) ($data['email'] ?? ''),
                 'schiene_id' => (int) ($data['schiene_id'] ?? 0),
-            ]);
+            ], !$open && $adminTest);
             return $response
                 ->withHeader('Location', '/danke/' . $anmeldung['token'])
                 ->withStatus(302);
         } catch (\Throwable $e) {
-            $list = $this->fachbereiche->all(true);
-            $withSchienen = [];
-            foreach ($list as $fb) {
-                $fb['schienen'] = $this->fachbereiche->schienenFor((int) $fb['id']);
-                $withSchienen[] = $fb;
-            }
             return $this->view->render($response->withStatus(400), 'public/register.twig', [
-                'fachbereiche' => $withSchienen,
+                'fachbereiche' => $this->activeFachbereicheWithSchienen(),
                 'selected_fb' => isset($data['fachbereich_id']) ? (int) $data['fachbereich_id'] : null,
                 'error' => $e->getMessage(),
                 'old' => $data,
+                'admin_test_mode' => !$open && $adminTest,
             ]);
         }
     }
@@ -149,6 +148,18 @@ final class PublicController
             'datenschutz_url',
             'datenschutz_text'
         );
+    }
+
+    /** @return list<array<string, mixed>> */
+    private function activeFachbereicheWithSchienen(): array
+    {
+        $list = $this->fachbereiche->all(true);
+        $withSchienen = [];
+        foreach ($list as $fb) {
+            $fb['schienen'] = $this->fachbereiche->schienenFor((int) $fb['id']);
+            $withSchienen[] = $fb;
+        }
+        return $withSchienen;
     }
 
     private function renderLegalPage(

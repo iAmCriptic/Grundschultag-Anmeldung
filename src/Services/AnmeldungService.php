@@ -22,11 +22,12 @@ final class AnmeldungService
 
     /**
      * @param array{name:string,email:string,schiene_id:int} $data
+     * @param bool $allowWhenClosed Admin-Testmodus darf trotz geschlossenem Zeitraum anmelden
      * @return array<string, mixed>
      */
-    public function register(array $data): array
+    public function register(array $data, bool $allowWhenClosed = false): array
     {
-        if (!$this->settings->isRegistrationOpen()) {
+        if (!$allowWhenClosed && !$this->settings->isRegistrationOpen()) {
             throw new RuntimeException('Die Anmeldung ist derzeit geschlossen.');
         }
 

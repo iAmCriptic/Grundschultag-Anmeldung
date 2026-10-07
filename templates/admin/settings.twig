@@ -30,7 +30,18 @@
 
                 <div class="settings-panel{% if tab == 'darstellung' %} is-active{% endif %}" data-panel="darstellung">
                     <h2 class="settings-panel-title">Darstellung</h2>
-                    <p class="settings-panel-lead">Logo und Willkommensseite für die öffentliche Anmeldung.</p>
+                    <p class="settings-panel-lead">Titel, Logo und Willkommensseite für die öffentliche Anmeldung.</p>
+
+                    <div class="settings-block">
+                        <h3 class="settings-block-title">Titel</h3>
+                        <div class="mb-0">
+                            <label class="form-label" for="site_title">Seitentitel</label>
+                            <input class="form-control" type="text" name="site_title" id="site_title" maxlength="150"
+                                   value="{{ settings.site_title|default(app_name, true) }}"
+                                   placeholder="z. B. Merian Schule">
+                            <div class="form-text">Erscheint in der Kopfzeile, im Fuß und auf der Willkommensseite.</div>
+                        </div>
+                    </div>
 
                     <div class="settings-block">
                         <h3 class="settings-block-title">Logo</h3>
