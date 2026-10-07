@@ -1,71 +1,101 @@
 {% extends 'layouts/admin.twig' %}
 {% block title %}{% if fachbereich and fachbereich.id %}Fachbereich bearbeiten{% else %}Neuer Fachbereich{% endif %}{% endblock %}
 {% block content %}
-<section class="panel">
-    <h1>{% if fachbereich and fachbereich.id %}Fachbereich bearbeiten{% else %}Neuer Fachbereich{% endif %}</h1>
-    {% if flash %}<p class="flash ok">{{ flash }}</p>{% endif %}
-    {% if error %}<p class="flash error">{{ error }}</p>{% endif %}
+<section class="card app-card mb-4">
+    <div class="card-body p-4">
+        <h1 class="h2 mb-3">{% if fachbereich and fachbereich.id %}Fachbereich bearbeiten{% else %}Neuer Fachbereich{% endif %}</h1>
+        {% if flash %}<div class="alert alert-success">{{ flash }}</div>{% endif %}
+        {% if error %}<div class="alert alert-danger">{{ error }}</div>{% endif %}
 
-    <form method="post"
-          action="{% if fachbereich and fachbereich.id %}/administrator/fachbereiche/{{ fachbereich.id }}{% else %}/administrator/fachbereiche{% endif %}"
-          enctype="multipart/form-data"
-          class="stack-form">
-        {{ csrf.field()|raw }}
-        <label>Name
-            <input type="text" name="name" required value="{{ fachbereich.name|default('') }}">
-        </label>
-        <label>Teaser-Text
-            <textarea name="teaser_text" rows="5">{{ fachbereich.teaser_text|default('') }}</textarea>
-        </label>
-        <label>Teaser-Bild
-            <input type="file" name="teaser_bild" accept="image/jpeg,image/png,image/webp,image/gif">
-        </label>
-        {% if fachbereich.teaser_bild|default('') %}
-            <p><img class="thumb" src="/uploads/{{ fachbereich.teaser_bild }}" alt=""></p>
-            <label class="check"><input type="checkbox" name="remove_image" value="1"> Bild entfernen</label>
-        {% endif %}
-        <label>Sortierung
-            <input type="number" name="sortierung" value="{{ fachbereich.sortierung|default(0) }}">
-        </label>
-        <label class="check">
-            <input type="checkbox" name="aktiv" value="1" {% if fachbereich is null or fachbereich.aktiv|default(1) %}checked{% endif %}>
-            Aktiv
-        </label>
-        <button type="submit" class="btn">Speichern</button>
-        <a class="btn btn-secondary" href="/administrator/fachbereiche">Zurück</a>
-    </form>
+        <form method="post"
+              action="{% if fachbereich and fachbereich.id %}/administrator/fachbereiche/{{ fachbereich.id }}{% else %}/administrator/fachbereiche{% endif %}"
+              enctype="multipart/form-data">
+            {{ csrf.field()|raw }}
+            <div class="mb-3">
+                <label class="form-label" for="name">Name</label>
+                <input class="form-control" type="text" name="name" id="name" required value="{{ fachbereich.name|default('') }}">
+            </div>
+            <div class="mb-3">
+                <label class="form-label" for="teaser_text">Teaser-Text</label>
+                <textarea class="form-control" name="teaser_text" id="teaser_text" rows="5">{{ fachbereich.teaser_text|default('') }}</textarea>
+            </div>
+            <div class="mb-3">
+                <label class="form-label" for="teaser_bild">Teaser-Bild</label>
+                <input class="form-control" type="file" name="teaser_bild" id="teaser_bild" accept="image/jpeg,image/png,image/webp,image/gif">
+            </div>
+            {% if fachbereich.teaser_bild|default('') %}
+                <p><img class="thumb" src="/uploads/{{ fachbereich.teaser_bild }}" alt=""></p>
+                <div class="form-check mb-3">
+                    <input class="form-check-input" type="checkbox" name="remove_image" value="1" id="remove_image">
+                    <label class="form-check-label" for="remove_image">Bild entfernen</label>
+                </div>
+            {% endif %}
+            <div class="mb-3">
+                <label class="form-label" for="sortierung">Sortierung</label>
+                <input class="form-control" type="number" name="sortierung" id="sortierung" value="{{ fachbereich.sortierung|default(0) }}">
+            </div>
+            <div class="form-check mb-3">
+                <input class="form-check-input" type="checkbox" name="aktiv" value="1" id="aktiv" {% if fachbereich is null or fachbereich.aktiv|default(1) %}checked{% endif %}>
+                <label class="form-check-label" for="aktiv">Aktiv</label>
+            </div>
+            <div class="d-flex flex-wrap gap-2">
+                <button type="submit" class="btn btn-primary">Speichern</button>
+                <a class="btn btn-outline-primary" href="/administrator/fachbereiche">Zurück</a>
+            </div>
+        </form>
+    </div>
 </section>
 
 {% if fachbereich and fachbereich.id %}
-<section class="panel">
-    <h2>Schienen</h2>
-    {% if schienen is empty %}
-        <p>Noch keine Schienen. Legen Sie mindestens eine an.</p>
-    {% else %}
-        {% for s in schienen %}
-            <form method="post" action="/administrator/fachbereiche/{{ fachbereich.id }}/schienen/{{ s.id }}" class="schiene-row">
-                {{ csrf.field()|raw }}
-                <input type="text" name="name" value="{{ s.name }}" required aria-label="Name">
-                <input type="number" name="kapazitaet" value="{{ s.kapazitaet }}" min="1" required aria-label="Kapazität">
-                <input type="number" name="sortierung" value="{{ s.sortierung }}" aria-label="Sortierung">
-                <span class="muted">{{ s.belegt }}/{{ s.kapazitaet }} belegt</span>
-                <button type="submit" class="btn btn-secondary">Speichern</button>
-            </form>
-            <form method="post" action="/administrator/fachbereiche/{{ fachbereich.id }}/schienen/{{ s.id }}/delete" class="inline-form" onsubmit="return confirm('Schiene löschen?');">
-                {{ csrf.field()|raw }}
-                <button type="submit" class="linkish danger">Löschen</button>
-            </form>
-        {% endfor %}
-    {% endif %}
+<section class="card app-card">
+    <div class="card-body p-4">
+        <h2 class="h4 mb-3">Schienen</h2>
+        {% if schienen is empty %}
+            <p>Noch keine Schienen. Legen Sie mindestens eine an.</p>
+        {% else %}
+            {% for s in schienen %}
+                <form method="post" action="/administrator/fachbereiche/{{ fachbereich.id }}/schienen/{{ s.id }}" class="row g-2 align-items-center mb-2">
+                    {{ csrf.field()|raw }}
+                    <div class="col-md-4">
+                        <input class="form-control" type="text" name="name" value="{{ s.name }}" required aria-label="Name">
+                    </div>
+                    <div class="col-md-2">
+                        <input class="form-control" type="number" name="kapazitaet" value="{{ s.kapazitaet }}" min="1" required aria-label="Kapazität">
+                    </div>
+                    <div class="col-md-2">
+                        <input class="form-control" type="number" name="sortierung" value="{{ s.sortierung }}" aria-label="Sortierung">
+                    </div>
+                    <div class="col-md-2">
+                        <span class="text-muted small">{{ s.belegt }}/{{ s.kapazitaet }} belegt</span>
+                    </div>
+                    <div class="col-md-2">
+                        <button type="submit" class="btn btn-outline-primary btn-sm">Speichern</button>
+                    </div>
+                </form>
+                <form method="post" action="/administrator/fachbereiche/{{ fachbereich.id }}/schienen/{{ s.id }}/delete" class="mb-3" onsubmit="return confirm('Schiene löschen?');">
+                    {{ csrf.field()|raw }}
+                    <button type="submit" class="btn btn-link btn-sm text-danger p-0">Löschen</button>
+                </form>
+            {% endfor %}
+        {% endif %}
 
-    <h3>Neue Schiene</h3>
-    <form method="post" action="/administrator/fachbereiche/{{ fachbereich.id }}/schienen" class="schiene-row">
-        {{ csrf.field()|raw }}
-        <input type="text" name="name" placeholder="z. B. Vormittag" required>
-        <input type="number" name="kapazitaet" value="20" min="1" required>
-        <input type="number" name="sortierung" value="0">
-        <button type="submit" class="btn">Hinzufügen</button>
-    </form>
+        <h3 class="h5 mt-4">Neue Schiene</h3>
+        <form method="post" action="/administrator/fachbereiche/{{ fachbereich.id }}/schienen" class="row g-2 align-items-center">
+            {{ csrf.field()|raw }}
+            <div class="col-md-4">
+                <input class="form-control" type="text" name="name" placeholder="z. B. Vormittag" required>
+            </div>
+            <div class="col-md-2">
+                <input class="form-control" type="number" name="kapazitaet" value="20" min="1" required>
+            </div>
+            <div class="col-md-2">
+                <input class="form-control" type="number" name="sortierung" value="0">
+            </div>
+            <div class="col-md-2">
+                <button type="submit" class="btn btn-primary">Hinzufügen</button>
+            </div>
+        </form>
+    </div>
 </section>
 {% endif %}
 {% endblock %}

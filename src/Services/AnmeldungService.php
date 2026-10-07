@@ -122,11 +122,33 @@ final class AnmeldungService
         $stmt->execute(['token' => $token]);
     }
 
-    public function countActive(): int
+    public function countActive(?int $fachbereichId = null): int
     {
-        return (int) $this->pdo->query(
-            "SELECT COUNT(*) FROM anmeldungen WHERE status = 'aktiv'"
-        )->fetchColumn();
+        if ($fachbereichId === null) {
+            return (int) $this->pdo->query(
+                "SELECT COUNT(*) FROM anmeldungen WHERE status = 'aktiv'"
+            )->fetchColumn();
+        }
+
+        $stmt = $this->pdo->prepare(
+            "SELECT COUNT(*) FROM anmeldungen a
+             INNER JOIN schienen s ON s.id = a.schiene_id
+             WHERE a.status = 'aktiv' AND s.fachbereich_id = :fb"
+        );
+        $stmt->execute(['fb' => $fachbereichId]);
+        return (int) $stmt->fetchColumn();
+    }
+
+    public function countAll(): int
+    {
+        return (int) $this->pdo->query('SELECT COUNT(*) FROM anmeldungen')->fetchColumn();
+    }
+
+    public function deleteAll(): int
+    {
+        $count = $this->countAll();
+        $this->pdo->exec('DELETE FROM anmeldungen');
+        return $count;
     }
 
     /** @param array<string, mixed> $anmeldung */

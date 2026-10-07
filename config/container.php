@@ -17,6 +17,7 @@ use App\Services\ExportService;
 use App\Services\FachbereichService;
 use App\Services\InstallerService;
 use App\Services\MailService;
+use App\Services\SchemaMigrator;
 use App\Services\SettingsService;
 use App\Services\UploadService;
 use Psr\Container\ContainerInterface;
@@ -46,6 +47,7 @@ return [
             PDO::ATTR_EMULATE_PREPARES => false,
             PDO::ATTR_PERSISTENT => false,
         ]);
+        (new SchemaMigrator())->migrate($pdo);
         return $pdo;
     },
 
@@ -56,6 +58,33 @@ return [
         ]);
         $twig->getEnvironment()->addGlobal('app_name', $c->get('settings')['app_name']);
         $twig->getEnvironment()->addGlobal('csrf', $c->get(CsrfService::class));
+        $siteLogo = '';
+        $impressumHref = '';
+        $datenschutzHref = '';
+        try {
+            $db = $c->get('settings')['db'] ?? [];
+            if (($db['name'] ?? '') !== '' && is_file($c->get('root_path') . '/.env')) {
+                $settingsService = $c->get(SettingsService::class);
+                $siteLogo = $settingsService->get('site_logo');
+                $impressumHref = $settingsService->legalHref('impressum_url', 'impressum_text', '/impressum');
+                $datenschutzHref = $settingsService->legalHref('datenschutz_url', 'datenschutz_text', '/datenschutz');
+            }
+        } catch (Throwable) {
+            $siteLogo = '';
+            $impressumHref = '';
+            $datenschutzHref = '';
+        }
+        $twig->getEnvironment()->addGlobal('site_logo', $siteLogo);
+        $twig->getEnvironment()->addGlobal('impressum_href', $impressumHref);
+        $twig->getEnvironment()->addGlobal('datenschutz_href', $datenschutzHref);
+        $twig->getEnvironment()->addGlobal(
+            'impressum_external',
+            $impressumHref !== '' && preg_match('#^https?://#i', $impressumHref) === 1
+        );
+        $twig->getEnvironment()->addGlobal(
+            'datenschutz_external',
+            $datenschutzHref !== '' && preg_match('#^https?://#i', $datenschutzHref) === 1
+        );
         return $twig;
     },
 
@@ -73,7 +102,10 @@ return [
             $c->get('settings')
         );
     },
-    ExportService::class => static fn (ContainerInterface $c) => new ExportService($c->get(PDO::class)),
+    ExportService::class => static fn (ContainerInterface $c) => new ExportService(
+        $c->get(PDO::class),
+        $c->get('root_path') . '/public/uploads'
+    ),
     UploadService::class => static fn (ContainerInterface $c) => new UploadService($c->get('root_path') . '/public/uploads'),
 
     SetupController::class => static function (ContainerInterface $c) {
@@ -105,7 +137,8 @@ return [
         return new DashboardController(
             $c->get(Twig::class),
             $c->get(FachbereichService::class),
-            $c->get(AnmeldungService::class)
+            $c->get(AnmeldungService::class),
+            $c->get(AuthService::class)
         );
     },
     FachbereichController::class => static function (ContainerInterface $c) {
@@ -113,7 +146,8 @@ return [
             $c->get(Twig::class),
             $c->get(FachbereichService::class),
             $c->get(UploadService::class),
-            $c->get(CsrfService::class)
+            $c->get(CsrfService::class),
+            $c->get(AuthService::class)
         );
     },
     SettingsController::class => static function (ContainerInterface $c) {
@@ -121,15 +155,25 @@ return [
             $c->get(Twig::class),
             $c->get(SettingsService::class),
             $c->get(UploadService::class),
-            $c->get(CsrfService::class)
+            $c->get(CsrfService::class),
+            $c->get(AuthService::class),
+            $c->get(FachbereichService::class),
+            $c->get(AnmeldungService::class)
         );
     },
     ExportController::class => static function (ContainerInterface $c) {
         return new ExportController(
             $c->get(Twig::class),
             $c->get(FachbereichService::class),
-            $c->get(ExportService::class)
+            $c->get(ExportService::class),
+            $c->get(SettingsService::class),
+            $c->get(AuthService::class)
         );
     },
-    AdminAuthMiddleware::class => static fn () => new AdminAuthMiddleware(),
+    AdminAuthMiddleware::class => static function (ContainerInterface $c) {
+        return new AdminAuthMiddleware(
+            $c->get(Twig::class),
+            $c->get(AuthService::class)
+        );
+    },
 ];

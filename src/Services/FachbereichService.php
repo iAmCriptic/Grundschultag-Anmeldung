@@ -14,14 +14,24 @@ final class FachbereichService
     }
 
     /** @return list<array<string, mixed>> */
-    public function all(bool $onlyActive = false): array
+    public function all(bool $onlyActive = false, ?int $onlyId = null): array
     {
-        $sql = 'SELECT * FROM fachbereiche';
+        $sql = 'SELECT * FROM fachbereiche WHERE 1=1';
+        $params = [];
         if ($onlyActive) {
-            $sql .= ' WHERE aktiv = 1';
+            $sql .= ' AND aktiv = 1';
+        }
+        if ($onlyId !== null) {
+            $sql .= ' AND id = :id';
+            $params['id'] = $onlyId;
         }
         $sql .= ' ORDER BY sortierung ASC, name ASC';
-        return $this->pdo->query($sql)->fetchAll();
+        if ($params === []) {
+            return $this->pdo->query($sql)->fetchAll();
+        }
+        $stmt = $this->pdo->prepare($sql);
+        $stmt->execute($params);
+        return $stmt->fetchAll();
     }
 
     /** @return array<string, mixed>|null */
@@ -103,6 +113,13 @@ final class FachbereichService
         if ((int) $check->fetchColumn() > 0) {
             throw new RuntimeException('Fachbereich hat noch aktive Anmeldungen und kann nicht gelöscht werden.');
         }
+
+        $users = $this->pdo->prepare('SELECT COUNT(*) FROM admins WHERE fachbereich_id = :id');
+        $users->execute(['id' => $id]);
+        if ((int) $users->fetchColumn() > 0) {
+            throw new RuntimeException('Fachbereich hat zugewiesene Benutzer und kann nicht gelöscht werden.');
+        }
+
         $this->pdo->prepare('DELETE FROM fachbereiche WHERE id = :id')->execute(['id' => $id]);
     }
 
@@ -147,9 +164,9 @@ final class FachbereichService
     }
 
     /** @return list<array<string, mixed>> */
-    public function withStats(): array
+    public function withStats(?int $onlyId = null): array
     {
-        $list = $this->all(false);
+        $list = $this->all(false, $onlyId);
         foreach ($list as &$fb) {
             $fb['schienen'] = $this->schienenFor((int) $fb['id']);
         }

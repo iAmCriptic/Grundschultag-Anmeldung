@@ -128,4 +128,57 @@ final class PublicController
             ]);
         }
     }
+
+    public function impressum(Request $request, Response $response): Response
+    {
+        return $this->renderLegalPage(
+            $response,
+            'Impressum',
+            'public/impressum.twig',
+            'impressum_url',
+            'impressum_text'
+        );
+    }
+
+    public function datenschutz(Request $request, Response $response): Response
+    {
+        return $this->renderLegalPage(
+            $response,
+            'Datenschutz',
+            'public/datenschutz.twig',
+            'datenschutz_url',
+            'datenschutz_text'
+        );
+    }
+
+    private function renderLegalPage(
+        Response $response,
+        string $title,
+        string $template,
+        string $urlKey,
+        string $textKey
+    ): Response {
+        $text = trim($this->settings->get($textKey));
+        $url = $this->settings->normalizeLegalUrl($this->settings->get($urlKey));
+
+        if ($text !== '') {
+            return $this->view->render($response, $template, [
+                'title' => $title,
+                'body' => $text,
+                'missing' => false,
+            ]);
+        }
+
+        if ($url !== '') {
+            return $response
+                ->withHeader('Location', $url)
+                ->withStatus(302);
+        }
+
+        return $this->view->render($response->withStatus(404), $template, [
+            'title' => $title,
+            'body' => '',
+            'missing' => true,
+        ]);
+    }
 }

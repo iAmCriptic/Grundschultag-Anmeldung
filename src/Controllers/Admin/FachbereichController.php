@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Controllers\Admin;
 
+use App\Services\AuthService;
 use App\Services\CsrfService;
 use App\Services\FachbereichService;
 use App\Services\UploadService;
@@ -17,7 +18,8 @@ final class FachbereichController
         private readonly Twig $view,
         private readonly FachbereichService $fachbereiche,
         private readonly UploadService $uploads,
-        private readonly CsrfService $csrf
+        private readonly CsrfService $csrf,
+        private readonly AuthService $auth
     ) {
     }
 
@@ -25,23 +27,37 @@ final class FachbereichController
     {
         $flash = $_SESSION['flash'] ?? null;
         unset($_SESSION['flash']);
+        $scopeId = $this->auth->isFullAdmin() ? null : ($this->auth->fachbereichId() ?? 0);
+
         return $this->view->render($response, 'admin/fachbereiche/index.twig', [
-            'fachbereiche' => $this->fachbereiche->withStats(),
+            'fachbereiche' => $this->fachbereiche->withStats($scopeId),
             'flash' => $flash,
+            'admin_is_full' => $this->auth->isFullAdmin(),
         ]);
     }
 
     public function createForm(Request $request, Response $response): Response
     {
+        $denied = $this->requireFullAdmin($response);
+        if ($denied !== null) {
+            return $denied;
+        }
+
         return $this->view->render($response, 'admin/fachbereiche/form.twig', [
             'fachbereich' => null,
             'schienen' => [],
             'error' => null,
+            'admin_is_full' => true,
         ]);
     }
 
     public function create(Request $request, Response $response): Response
     {
+        $denied = $this->requireFullAdmin($response);
+        if ($denied !== null) {
+            return $denied;
+        }
+
         $data = (array) $request->getParsedBody();
         $files = $request->getUploadedFiles();
         try {
@@ -67,13 +83,20 @@ final class FachbereichController
                 'fachbereich' => $data,
                 'schienen' => [],
                 'error' => $e->getMessage(),
+                'admin_is_full' => true,
             ]);
         }
     }
 
     public function editForm(Request $request, Response $response, array $args): Response
     {
-        $fb = $this->fachbereiche->find((int) $args['id']);
+        $id = (int) $args['id'];
+        $denied = $this->requireFachbereichAccess($response, $id);
+        if ($denied !== null) {
+            return $denied;
+        }
+
+        $fb = $this->fachbereiche->find($id);
         if ($fb === null) {
             return $response->withStatus(404);
         }
@@ -84,12 +107,18 @@ final class FachbereichController
             'schienen' => $this->fachbereiche->schienenFor((int) $fb['id']),
             'error' => null,
             'flash' => $flash,
+            'admin_is_full' => $this->auth->isFullAdmin(),
         ]);
     }
 
     public function update(Request $request, Response $response, array $args): Response
     {
         $id = (int) $args['id'];
+        $denied = $this->requireFachbereichAccess($response, $id);
+        if ($denied !== null) {
+            return $denied;
+        }
+
         $fb = $this->fachbereiche->find($id);
         if ($fb === null) {
             return $response->withStatus(404);
@@ -121,18 +150,29 @@ final class FachbereichController
                 'fachbereich' => array_merge($fb, $data),
                 'schienen' => $this->fachbereiche->schienenFor($id),
                 'error' => $e->getMessage(),
+                'admin_is_full' => $this->auth->isFullAdmin(),
             ]);
         }
     }
 
     public function toggle(Request $request, Response $response, array $args): Response
     {
+        $denied = $this->requireFullAdmin($response);
+        if ($denied !== null) {
+            return $denied;
+        }
+
         $this->fachbereiche->toggle((int) $args['id']);
         return $response->withHeader('Location', '/administrator/fachbereiche')->withStatus(302);
     }
 
     public function delete(Request $request, Response $response, array $args): Response
     {
+        $denied = $this->requireFullAdmin($response);
+        if ($denied !== null) {
+            return $denied;
+        }
+
         try {
             $fb = $this->fachbereiche->find((int) $args['id']);
             $this->fachbereiche->delete((int) $args['id']);
@@ -149,6 +189,11 @@ final class FachbereichController
     public function addSchiene(Request $request, Response $response, array $args): Response
     {
         $id = (int) $args['id'];
+        $denied = $this->requireFachbereichAccess($response, $id);
+        if ($denied !== null) {
+            return $denied;
+        }
+
         $data = (array) $request->getParsedBody();
         try {
             $this->fachbereiche->addSchiene(
@@ -167,6 +212,11 @@ final class FachbereichController
     public function updateSchiene(Request $request, Response $response, array $args): Response
     {
         $id = (int) $args['id'];
+        $denied = $this->requireFachbereichAccess($response, $id);
+        if ($denied !== null) {
+            return $denied;
+        }
+
         $data = (array) $request->getParsedBody();
         try {
             $this->fachbereiche->updateSchiene(
@@ -185,6 +235,11 @@ final class FachbereichController
     public function deleteSchiene(Request $request, Response $response, array $args): Response
     {
         $id = (int) $args['id'];
+        $denied = $this->requireFachbereichAccess($response, $id);
+        if ($denied !== null) {
+            return $denied;
+        }
+
         try {
             $this->fachbereiche->deleteSchiene((int) $args['schieneId']);
             $_SESSION['flash'] = 'Schiene gelöscht.';
@@ -192,6 +247,24 @@ final class FachbereichController
             $_SESSION['flash'] = $e->getMessage();
         }
         return $response->withHeader('Location', '/administrator/fachbereiche/' . $id)->withStatus(302);
+    }
+
+    private function requireFullAdmin(Response $response): ?Response
+    {
+        if ($this->auth->isFullAdmin()) {
+            return null;
+        }
+        $_SESSION['flash'] = 'Keine Berechtigung für diese Aktion.';
+        return $response->withHeader('Location', '/administrator/fachbereiche')->withStatus(302);
+    }
+
+    private function requireFachbereichAccess(Response $response, int $fachbereichId): ?Response
+    {
+        if ($this->auth->canAccessFachbereich($fachbereichId)) {
+            return null;
+        }
+        $_SESSION['flash'] = 'Kein Zugriff auf diesen Fachbereich.';
+        return $response->withHeader('Location', '/administrator/fachbereiche')->withStatus(302);
     }
 
     private function storeUploaded(\Psr\Http\Message\UploadedFileInterface $file): string

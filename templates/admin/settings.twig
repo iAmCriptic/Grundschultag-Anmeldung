@@ -1,53 +1,296 @@
 {% extends 'layouts/admin.twig' %}
 {% block title %}Einstellungen{% endblock %}
 {% block content %}
-<section class="panel">
-    <h1>Allgemeine Einstellungen</h1>
-    {% if flash %}<p class="flash ok">{{ flash }}</p>{% endif %}
-    {% if error %}<p class="flash error">{{ error }}</p>{% endif %}
+{% set tab = active_tab|default('darstellung') %}
+<section class="settings-page">
+    <header class="settings-page-header">
+        <h1 class="h2 mb-1">Einstellungen</h1>
+        <p class="text-muted mb-0">Darstellung, Zeitraum, Benutzer und Datenverwaltung</p>
+    </header>
 
-    <form method="post" action="/administrator/einstellungen" enctype="multipart/form-data" class="stack-form">
-        {{ csrf.field()|raw }}
+    {% if flash %}<div class="alert alert-success mt-3 mb-0">{{ flash }}</div>{% endif %}
+    {% if error %}<div class="alert alert-danger mt-3 mb-0">{{ error }}</div>{% endif %}
 
-        <fieldset>
-            <legend>Willkommensseite</legend>
-            <label>Willkommenstext
-                <textarea name="welcome_text" rows="8">{{ settings.welcome_text|default('') }}</textarea>
-            </label>
-            <label>Willkommensbild
-                <input type="file" name="welcome_image" accept="image/jpeg,image/png,image/webp,image/gif">
-            </label>
-            {% if settings.welcome_image|default('') %}
-                <p><img class="thumb" src="/uploads/{{ settings.welcome_image }}" alt=""></p>
-                <label class="check"><input type="checkbox" name="remove_welcome_image" value="1"> Bild entfernen</label>
-            {% endif %}
-        </fieldset>
+    <div class="settings-shell mt-4">
+        <nav class="settings-nav" aria-label="Einstellungsbereiche">
+            <button type="button" class="settings-nav-item{% if tab == 'darstellung' %} is-active{% endif %}" data-settings-tab="darstellung">Darstellung</button>
+            <button type="button" class="settings-nav-item{% if tab == 'zeitraum' %} is-active{% endif %}" data-settings-tab="zeitraum">Zeitraum</button>
+            <button type="button" class="settings-nav-item{% if tab == 'email' %} is-active{% endif %}" data-settings-tab="email">E-Mail</button>
+            <button type="button" class="settings-nav-item{% if tab == 'rechtliches' %} is-active{% endif %}" data-settings-tab="rechtliches">Rechtliches</button>
+            <button type="button" class="settings-nav-item{% if tab == 'benutzer' %} is-active{% endif %}" data-settings-tab="benutzer">Benutzer</button>
+            <button type="button" class="settings-nav-item settings-nav-item-danger{% if tab == 'daten' %} is-active{% endif %}" data-settings-tab="daten">Daten</button>
+        </nav>
 
-        <fieldset>
-            <legend>Anmeldezeitraum</legend>
-            <label>Start
-                <input type="datetime-local" name="registration_start" value="{{ settings.registration_start|default('')|replace({' ': 'T'})|slice(0, 16) }}">
-            </label>
-            <label>Ende
-                <input type="datetime-local" name="registration_end" value="{{ settings.registration_end|default('')|replace({' ': 'T'})|slice(0, 16) }}">
-            </label>
-            <p class="muted">Leer lassen = kein Limit. Format wird vom Browser gesetzt.</p>
-        </fieldset>
+        <div class="settings-panels">
+            {# —— Darstellung / Zeitraum / E-Mail / Rechtliches —— #}
+            <form method="post" action="/administrator/einstellungen" enctype="multipart/form-data" id="settings-main-form">
+                {{ csrf.field()|raw }}
+                <input type="hidden" name="active_tab" id="active_tab" value="{{ tab }}">
 
-        <fieldset>
-            <legend>E-Mail</legend>
-            <label>Absender-Adresse
-                <input type="email" name="mail_from" value="{{ settings.mail_from|default('') }}">
-            </label>
-            <label>Absender-Name
-                <input type="text" name="mail_from_name" value="{{ settings.mail_from_name|default('') }}">
-            </label>
-            <label>Betreff
-                <input type="text" name="mail_subject" value="{{ settings.mail_subject|default('') }}">
-            </label>
-        </fieldset>
+                <div class="settings-panel{% if tab == 'darstellung' %} is-active{% endif %}" data-panel="darstellung">
+                    <h2 class="settings-panel-title">Darstellung</h2>
+                    <p class="settings-panel-lead">Logo und Willkommensseite für die öffentliche Anmeldung.</p>
 
-        <button type="submit" class="btn">Speichern</button>
-    </form>
+                    <div class="settings-block">
+                        <h3 class="settings-block-title">Logo</h3>
+                        <div class="mb-3">
+                            <label class="form-label" for="site_logo">Logo oben links</label>
+                            <input class="form-control" type="file" name="site_logo" id="site_logo" accept="image/jpeg,image/png,image/webp,image/gif">
+                        </div>
+                        {% if settings.site_logo|default('') %}
+                            <div class="settings-preview mb-2">
+                                <img class="thumb" src="/uploads/{{ settings.site_logo }}" alt="Aktuelles Logo">
+                            </div>
+                            <div class="form-check">
+                                <input class="form-check-input" type="checkbox" name="remove_site_logo" value="1" id="remove_site_logo">
+                                <label class="form-check-label" for="remove_site_logo">Logo entfernen</label>
+                            </div>
+                        {% endif %}
+                    </div>
+
+                    <div class="settings-block">
+                        <h3 class="settings-block-title">Willkommensseite</h3>
+                        <div class="mb-3">
+                            <label class="form-label" for="welcome_text">Willkommenstext</label>
+                            <textarea class="form-control" name="welcome_text" id="welcome_text" rows="7">{{ settings.welcome_text|default('') }}</textarea>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label" for="welcome_image">Willkommensbild</label>
+                            <input class="form-control" type="file" name="welcome_image" id="welcome_image" accept="image/jpeg,image/png,image/webp,image/gif">
+                        </div>
+                        {% if settings.welcome_image|default('') %}
+                            <div class="settings-preview mb-2">
+                                <img class="thumb" src="/uploads/{{ settings.welcome_image }}" alt="Aktuelles Willkommensbild">
+                            </div>
+                            <div class="form-check">
+                                <input class="form-check-input" type="checkbox" name="remove_welcome_image" value="1" id="remove_welcome_image">
+                                <label class="form-check-label" for="remove_welcome_image">Bild entfernen</label>
+                            </div>
+                        {% endif %}
+                    </div>
+
+                    <button type="submit" class="btn btn-primary">Speichern</button>
+                </div>
+
+                <div class="settings-panel{% if tab == 'zeitraum' %} is-active{% endif %}" data-panel="zeitraum">
+                    <h2 class="settings-panel-title">Anmeldezeitraum</h2>
+                    <p class="settings-panel-lead">Außerhalb dieses Zeitfensters ist die öffentliche Anmeldung geschlossen.</p>
+
+                    <div class="row g-3 settings-block">
+                        <div class="col-md-6">
+                            <label class="form-label" for="registration_start">Start</label>
+                            <input class="form-control" type="datetime-local" name="registration_start" id="registration_start" value="{{ settings.registration_start|default('')|replace({' ': 'T'})|slice(0, 16) }}">
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label" for="registration_end">Ende</label>
+                            <input class="form-control" type="datetime-local" name="registration_end" id="registration_end" value="{{ settings.registration_end|default('')|replace({' ': 'T'})|slice(0, 16) }}">
+                        </div>
+                    </div>
+                    <p class="text-muted small">Leer lassen = kein Limit.</p>
+                    <button type="submit" class="btn btn-primary">Speichern</button>
+                </div>
+
+                <div class="settings-panel{% if tab == 'email' %} is-active{% endif %}" data-panel="email">
+                    <h2 class="settings-panel-title">E-Mail</h2>
+                    <p class="settings-panel-lead">Absender und Betreff für Bestätigungsmails.</p>
+
+                    <div class="settings-block">
+                        <div class="mb-3">
+                            <label class="form-label" for="mail_from">Absender-Adresse</label>
+                            <input class="form-control" type="email" name="mail_from" id="mail_from" value="{{ settings.mail_from|default('') }}">
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label" for="mail_from_name">Absender-Name</label>
+                            <input class="form-control" type="text" name="mail_from_name" id="mail_from_name" value="{{ settings.mail_from_name|default('') }}">
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label" for="mail_subject">Betreff</label>
+                            <input class="form-control" type="text" name="mail_subject" id="mail_subject" value="{{ settings.mail_subject|default('') }}">
+                        </div>
+                    </div>
+                    <button type="submit" class="btn btn-primary">Speichern</button>
+                </div>
+
+                <div class="settings-panel{% if tab == 'rechtliches' %} is-active{% endif %}" data-panel="rechtliches">
+                    <h2 class="settings-panel-title">Rechtliches</h2>
+                    <p class="settings-panel-lead">Entweder externe URL oder eigenen Text hinterlegen. Eine URL hat Vorrang.</p>
+
+                    <div class="settings-block">
+                        <h3 class="settings-block-title">Impressum</h3>
+                        <div class="mb-3">
+                            <label class="form-label" for="impressum_url">Externe URL</label>
+                            <input class="form-control" type="url" name="impressum_url" id="impressum_url" placeholder="https://…" value="{{ settings.impressum_url|default('') }}">
+                        </div>
+                        <div class="mb-0">
+                            <label class="form-label" for="impressum_text">Oder Text</label>
+                            <textarea class="form-control" name="impressum_text" id="impressum_text" rows="5">{{ settings.impressum_text|default('') }}</textarea>
+                        </div>
+                    </div>
+
+                    <div class="settings-block">
+                        <h3 class="settings-block-title">Datenschutz</h3>
+                        <div class="mb-3">
+                            <label class="form-label" for="datenschutz_url">Externe URL</label>
+                            <input class="form-control" type="url" name="datenschutz_url" id="datenschutz_url" placeholder="https://…" value="{{ settings.datenschutz_url|default('') }}">
+                        </div>
+                        <div class="mb-0">
+                            <label class="form-label" for="datenschutz_text">Oder Text</label>
+                            <textarea class="form-control" name="datenschutz_text" id="datenschutz_text" rows="5">{{ settings.datenschutz_text|default('') }}</textarea>
+                        </div>
+                    </div>
+                    <button type="submit" class="btn btn-primary">Speichern</button>
+                </div>
+            </form>
+
+            {# —— Benutzer —— #}
+            <div class="settings-panel{% if tab == 'benutzer' %} is-active{% endif %}" data-panel="benutzer">
+                <h2 class="settings-panel-title">Benutzer</h2>
+                <p class="settings-panel-lead">Administratoren mit vollem Zugriff oder Nutzer, die nur einen Fachbereich sehen.</p>
+
+                <div class="settings-block">
+                    <h3 class="settings-block-title">Vorhandene Benutzer</h3>
+                    {% if users is empty %}
+                        <p class="mb-0 text-muted">Keine Benutzer vorhanden.</p>
+                    {% else %}
+                        <div class="table-responsive">
+                            <table class="table table-sm align-middle mb-0">
+                                <thead>
+                                    <tr>
+                                        <th>Benutzername</th>
+                                        <th>Rolle</th>
+                                        <th>Fachbereich</th>
+                                        <th></th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                {% for u in users %}
+                                    <tr>
+                                        <td>{{ u.username }}{% if u.id == current_admin_id %} <span class="text-muted">(Sie)</span>{% endif %}</td>
+                                        <td>{% if u.role == 'fachbereich' %}Fachbereich{% else %}Administrator{% endif %}</td>
+                                        <td>{{ u.fachbereich_name|default('—') }}</td>
+                                        <td class="text-end">
+                                            {% if u.id != current_admin_id %}
+                                                <form method="post" action="/administrator/einstellungen/benutzer/{{ u.id }}/delete" class="d-inline" onsubmit="return confirm('Benutzer „{{ u.username }}“ wirklich löschen?');">
+                                                    {{ csrf.field()|raw }}
+                                                    <button type="submit" class="btn btn-link btn-sm text-danger p-0">Löschen</button>
+                                                </form>
+                                            {% endif %}
+                                        </td>
+                                    </tr>
+                                {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                    {% endif %}
+                </div>
+
+                <div class="settings-block">
+                    <h3 class="settings-block-title">Neuen Benutzer anlegen</h3>
+                    <form method="post" action="/administrator/einstellungen/benutzer" id="user-create-form">
+                        {{ csrf.field()|raw }}
+                        <div class="row g-3">
+                            <div class="col-md-6">
+                                <label class="form-label" for="username">Benutzername</label>
+                                <input class="form-control" type="text" name="username" id="username" required maxlength="100" autocomplete="off">
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label" for="password">Passwort</label>
+                                <input class="form-control" type="password" name="password" id="password" required minlength="8" autocomplete="new-password">
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label" for="role">Rolle</label>
+                                <select class="form-select" name="role" id="role">
+                                    <option value="admin">Administrator (voller Zugriff)</option>
+                                    <option value="fachbereich">Fachbereich-Nutzer</option>
+                                </select>
+                            </div>
+                            <div class="col-md-6" id="fachbereich-field" hidden>
+                                <label class="form-label" for="fachbereich_id">Fachbereich</label>
+                                <select class="form-select" name="fachbereich_id" id="fachbereich_id">
+                                    <option value="">— bitte wählen —</option>
+                                    {% for fb in fachbereiche %}
+                                        <option value="{{ fb.id }}">{{ fb.name }}</option>
+                                    {% endfor %}
+                                </select>
+                                {% if fachbereiche is empty %}
+                                    <p class="form-text text-warning mb-0">Zuerst einen Fachbereich anlegen.</p>
+                                {% endif %}
+                            </div>
+                        </div>
+                        <button type="submit" class="btn btn-primary mt-3">Benutzer anlegen</button>
+                    </form>
+                </div>
+            </div>
+
+            {# —— Daten —— #}
+            <div class="settings-panel{% if tab == 'daten' %} is-active{% endif %}" data-panel="daten">
+                <h2 class="settings-panel-title">Daten löschen</h2>
+                <p class="settings-panel-lead">Entfernt alle Anmeldungen unwiderruflich. Fachbereiche, Benutzer und Einstellungen bleiben erhalten.</p>
+
+                <div class="settings-danger">
+                    <p class="mb-2"><strong>{{ anmeldungen_total }}</strong> Anmeldung{{ anmeldungen_total != 1 ? 'en' : '' }} in der Datenbank.</p>
+                    <form method="post" action="/administrator/einstellungen/daten-loeschen" onsubmit="return confirm('Wirklich alle Anmeldungen unwiderruflich löschen?');">
+                        {{ csrf.field()|raw }}
+                        <div class="mb-3">
+                            <label class="form-label" for="confirm">Zur Bestätigung <code>LÖSCHEN</code> eingeben</label>
+                            <input class="form-control" type="text" name="confirm" id="confirm" autocomplete="off" required placeholder="LÖSCHEN">
+                        </div>
+                        <button type="submit" class="btn btn-danger" {% if anmeldungen_total == 0 %}disabled{% endif %}>Alle Anmeldungen löschen</button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
 </section>
+{% endblock %}
+
+{% block scripts %}
+<script>
+(function () {
+    var navItems = document.querySelectorAll('[data-settings-tab]');
+    var panels = document.querySelectorAll('[data-panel]');
+    var activeTabInput = document.getElementById('active_tab');
+    var roleSelect = document.getElementById('role');
+    var fbField = document.getElementById('fachbereich-field');
+    var fbSelect = document.getElementById('fachbereich_id');
+
+    function showTab(name) {
+        navItems.forEach(function (btn) {
+            btn.classList.toggle('is-active', btn.getAttribute('data-settings-tab') === name);
+        });
+        panels.forEach(function (panel) {
+            panel.classList.toggle('is-active', panel.getAttribute('data-panel') === name);
+        });
+        if (activeTabInput) {
+            activeTabInput.value = name;
+        }
+        if (history.replaceState) {
+            var url = new URL(window.location.href);
+            url.searchParams.set('tab', name);
+            history.replaceState(null, '', url.toString());
+        }
+    }
+
+    navItems.forEach(function (btn) {
+        btn.addEventListener('click', function () {
+            showTab(btn.getAttribute('data-settings-tab'));
+        });
+    });
+
+    function syncRole() {
+        if (!roleSelect || !fbField) return;
+        var isFb = roleSelect.value === 'fachbereich';
+        fbField.hidden = !isFb;
+        if (fbSelect) {
+            fbSelect.required = isFb;
+            if (!isFb) fbSelect.value = '';
+        }
+    }
+
+    if (roleSelect) {
+        roleSelect.addEventListener('change', syncRole);
+        syncRole();
+    }
+})();
+</script>
 {% endblock %}

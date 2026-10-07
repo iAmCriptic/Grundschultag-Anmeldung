@@ -25,6 +25,8 @@ return static function (App $app): void {
     $app->get('/danke/{token}', [PublicController::class, 'thanks']);
     $app->get('/stornieren/{token}', [PublicController::class, 'cancelForm']);
     $app->post('/stornieren/{token}', [PublicController::class, 'cancelSubmit']);
+    $app->get('/impressum', [PublicController::class, 'impressum']);
+    $app->get('/datenschutz', [PublicController::class, 'datenschutz']);
 
     $app->group('/administrator', function (RouteCollectorProxy $group): void {
         $group->get('/login', [AuthController::class, 'loginForm']);
@@ -47,10 +49,13 @@ return static function (App $app): void {
             $admin->post('/fachbereiche/{id}/schienen/{schieneId}/delete', [FachbereichController::class, 'deleteSchiene']);
 
             $admin->get('/listen', [ExportController::class, 'index']);
-            $admin->get('/listen/{id}.csv', [ExportController::class, 'download']);
+            $admin->get('/listen/{id}/schiene/{schieneId}.pdf', [ExportController::class, 'download']);
 
             $admin->get('/einstellungen', [SettingsController::class, 'form']);
             $admin->post('/einstellungen', [SettingsController::class, 'save']);
+            $admin->post('/einstellungen/benutzer', [SettingsController::class, 'createUser']);
+            $admin->post('/einstellungen/benutzer/{id}/delete', [SettingsController::class, 'deleteUser']);
+            $admin->post('/einstellungen/daten-loeschen', [SettingsController::class, 'wipeData']);
         })->add(AdminAuthMiddleware::class);
     });
 };

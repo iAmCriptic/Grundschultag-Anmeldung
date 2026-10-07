@@ -2,21 +2,21 @@
 {% block title %}Willkommen · {{ app_name }}{% endblock %}
 {% block body_class %}page-home{% endblock %}
 {% block content %}
-<section class="hero">
+<section class="card app-card overflow-hidden">
     {% if welcome_image %}
         <div class="hero-media">
-            <img src="/uploads/{{ welcome_image }}" alt="">
+            <img src="/uploads/{{ welcome_image }}" alt="" class="card-img-top">
         </div>
     {% endif %}
-    <div class="hero-copy">
-        <h1>{{ app_name }}</h1>
-        <div class="prose">{{ welcome_text|nl2br }}</div>
+    <div class="card-body p-4">
+        <h1 class="h2 mb-3">{{ app_name }}</h1>
+        <div class="mb-3">{{ welcome_text|nl2br }}</div>
         {% if open %}
-            <p><a class="btn btn-lg" href="/anmelden">Anmelden</a></p>
+            <p class="mb-0"><a class="btn btn-primary btn-lg" href="/anmelden">Anmelden</a></p>
         {% else %}
-            <p class="flash">Die Anmeldung ist derzeit geschlossen.</p>
+            <div class="alert alert-warning">Die Anmeldung ist derzeit geschlossen.</div>
             {% if registration_start or registration_end %}
-                <p class="muted">
+                <p class="text-muted mb-0">
                     {% if registration_start %}Von {{ registration_start|replace({'T': ' '}) }}{% endif %}
                     {% if registration_end %} bis {{ registration_end|replace({'T': ' '}) }}{% endif %}
                 </p>

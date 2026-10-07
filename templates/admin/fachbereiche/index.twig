@@ -1,46 +1,54 @@
 {% extends 'layouts/admin.twig' %}
 {% block title %}Fachbereiche{% endblock %}
 {% block content %}
-<section class="panel">
-    <div class="panel-head">
-        <h1>Fachbereiche</h1>
-        <a class="btn" href="/administrator/fachbereiche/neu">Neu anlegen</a>
-    </div>
-    {% if flash %}<p class="flash">{{ flash }}</p>{% endif %}
+<section class="card app-card">
+    <div class="card-body p-4">
+        <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-3">
+            <h1 class="h2 mb-0">Fachbereiche</h1>
+            {% if admin_is_full %}
+                <a class="btn btn-primary" href="/administrator/fachbereiche/neu">Neu anlegen</a>
+            {% endif %}
+        </div>
+        {% if flash %}<div class="alert alert-info">{{ flash }}</div>{% endif %}
 
-    {% if fachbereiche is empty %}
-        <p>Noch keine Fachbereiche vorhanden.</p>
-    {% else %}
-        <table class="data-table">
-            <thead>
-                <tr>
-                    <th>Name</th>
-                    <th>Status</th>
-                    <th>Schienen</th>
-                    <th></th>
-                </tr>
-            </thead>
-            <tbody>
-            {% for fb in fachbereiche %}
-                <tr>
-                    <td>{{ fb.name }}</td>
-                    <td>{% if fb.aktiv %}aktiv{% else %}inaktiv{% endif %}</td>
-                    <td>{{ fb.schienen|length }}</td>
-                    <td class="actions-cell">
-                        <a href="/administrator/fachbereiche/{{ fb.id }}">Bearbeiten</a>
-                        <form method="post" action="/administrator/fachbereiche/{{ fb.id }}/toggle" class="inline-form">
-                            {{ csrf.field()|raw }}
-                            <button type="submit" class="linkish">{% if fb.aktiv %}Deaktivieren{% else %}Aktivieren{% endif %}</button>
-                        </form>
-                        <form method="post" action="/administrator/fachbereiche/{{ fb.id }}/delete" class="inline-form" onsubmit="return confirm('Wirklich löschen?');">
-                            {{ csrf.field()|raw }}
-                            <button type="submit" class="linkish danger">Löschen</button>
-                        </form>
-                    </td>
-                </tr>
-            {% endfor %}
-            </tbody>
-        </table>
-    {% endif %}
+        {% if fachbereiche is empty %}
+            <p class="mb-0">Noch keine Fachbereiche vorhanden.</p>
+        {% else %}
+            <div class="table-responsive">
+                <table class="table table-striped align-middle">
+                    <thead>
+                        <tr>
+                            <th>Name</th>
+                            <th>Status</th>
+                            <th>Schienen</th>
+                            <th></th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                    {% for fb in fachbereiche %}
+                        <tr>
+                            <td>{{ fb.name }}</td>
+                            <td>{% if fb.aktiv %}aktiv{% else %}inaktiv{% endif %}</td>
+                            <td>{{ fb.schienen|length }}</td>
+                            <td class="d-flex flex-wrap gap-2 align-items-center">
+                                <a href="/administrator/fachbereiche/{{ fb.id }}">Bearbeiten</a>
+                                {% if admin_is_full %}
+                                    <form method="post" action="/administrator/fachbereiche/{{ fb.id }}/toggle" class="d-inline">
+                                        {{ csrf.field()|raw }}
+                                        <button type="submit" class="btn btn-link btn-sm p-0">{% if fb.aktiv %}Deaktivieren{% else %}Aktivieren{% endif %}</button>
+                                    </form>
+                                    <form method="post" action="/administrator/fachbereiche/{{ fb.id }}/delete" class="d-inline" onsubmit="return confirm('Wirklich löschen?');">
+                                        {{ csrf.field()|raw }}
+                                        <button type="submit" class="btn btn-link btn-sm p-0 text-danger">Löschen</button>
+                                    </form>
+                                {% endif %}
+                            </td>
+                        </tr>
+                    {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        {% endif %}
+    </div>
 </section>
 {% endblock %}

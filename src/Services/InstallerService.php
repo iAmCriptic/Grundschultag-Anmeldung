@@ -63,11 +63,16 @@ final class InstallerService
         $defaults = [
             'welcome_text' => "Willkommen zur Anmeldung für den Grundschultag.\n\nBitte melden Sie sich über den Button unten an.",
             'welcome_image' => '',
+            'site_logo' => '',
             'registration_start' => '',
             'registration_end' => '',
             'mail_from' => $mail['from'],
             'mail_from_name' => $mail['from_name'],
             'mail_subject' => $mail['subject'],
+            'impressum_url' => '',
+            'impressum_text' => '',
+            'datenschutz_url' => '',
+            'datenschutz_text' => '',
         ];
         $stmt = $pdo->prepare(
             'INSERT INTO settings (setting_key, setting_value) VALUES (:k, :v)
@@ -79,7 +84,8 @@ final class InstallerService
 
         $hash = password_hash($admin['password'], PASSWORD_DEFAULT);
         $adminStmt = $pdo->prepare(
-            'INSERT INTO admins (username, password_hash) VALUES (:u, :p)'
+            'INSERT INTO admins (username, password_hash, role, fachbereich_id)
+             VALUES (:u, :p, \'admin\', NULL)'
         );
         $adminStmt->execute(['u' => $admin['username'], 'p' => $hash]);
 

@@ -1,34 +1,36 @@
 {% extends 'layouts/base.twig' %}
 {% block title %}Stornierung · {{ app_name }}{% endblock %}
 {% block content %}
-<section class="panel">
-    <h1>Anmeldung stornieren</h1>
+<section class="card app-card">
+    <div class="card-body p-4">
+        <h1 class="h2 mb-3">Anmeldung stornieren</h1>
 
-    {% if done %}
-        <p class="flash ok">Ihre Anmeldung wurde storniert.</p>
-        <dl class="detail-list">
-            <dt>Name</dt><dd>{{ anmeldung.name }}</dd>
-            <dt>Fachbereich</dt><dd>{{ anmeldung.fachbereich_name }}</dd>
-            <dt>Schiene</dt><dd>{{ anmeldung.schiene_name }}</dd>
-        </dl>
-        <p><a class="btn" href="/">Zur Startseite</a></p>
-    {% elseif anmeldung.status == 'storniert' %}
-        <p class="flash">Diese Anmeldung ist bereits storniert.</p>
-        <p><a class="btn" href="/">Zur Startseite</a></p>
-    {% else %}
-        {% if error %}<p class="flash error">{{ error }}</p>{% endif %}
-        <p>Möchten Sie die folgende Anmeldung wirklich stornieren?</p>
-        <dl class="detail-list">
-            <dt>Name</dt><dd>{{ anmeldung.name }}</dd>
-            <dt>E-Mail</dt><dd>{{ anmeldung.email }}</dd>
-            <dt>Fachbereich</dt><dd>{{ anmeldung.fachbereich_name }}</dd>
-            <dt>Schiene</dt><dd>{{ anmeldung.schiene_name }}</dd>
-        </dl>
-        <form method="post" action="/stornieren/{{ anmeldung.token }}">
-            {{ csrf.field()|raw }}
-            <button type="submit" class="btn">Ja, stornieren</button>
-            <a class="btn btn-secondary" href="/">Abbrechen</a>
-        </form>
-    {% endif %}
+        {% if done %}
+            <div class="alert alert-success">Ihre Anmeldung wurde storniert.</div>
+            <dl class="detail-list mb-4">
+                <dt>Name</dt><dd>{{ anmeldung.name }}</dd>
+                <dt>Fachbereich</dt><dd>{{ anmeldung.fachbereich_name }}</dd>
+                <dt>Schiene</dt><dd>{{ anmeldung.schiene_name }}</dd>
+            </dl>
+            <p class="mb-0"><a class="btn btn-primary" href="/">Zur Startseite</a></p>
+        {% elseif anmeldung.status == 'storniert' %}
+            <div class="alert alert-warning">Diese Anmeldung ist bereits storniert.</div>
+            <p class="mb-0"><a class="btn btn-primary" href="/">Zur Startseite</a></p>
+        {% else %}
+            {% if error %}<div class="alert alert-danger">{{ error }}</div>{% endif %}
+            <p>Möchten Sie die folgende Anmeldung wirklich stornieren?</p>
+            <dl class="detail-list mb-4">
+                <dt>Name</dt><dd>{{ anmeldung.name }}</dd>
+                <dt>E-Mail</dt><dd>{{ anmeldung.email }}</dd>
+                <dt>Fachbereich</dt><dd>{{ anmeldung.fachbereich_name }}</dd>
+                <dt>Schiene</dt><dd>{{ anmeldung.schiene_name }}</dd>
+            </dl>
+            <form method="post" action="/stornieren/{{ anmeldung.token }}" class="d-flex flex-wrap gap-2">
+                {{ csrf.field()|raw }}
+                <button type="submit" class="btn btn-primary">Ja, stornieren</button>
+                <a class="btn btn-outline-primary" href="/">Abbrechen</a>
+            </form>
+        {% endif %}
+    </div>
 </section>
 {% endblock %}

@@ -63,4 +63,36 @@ final class SettingsService
         }
         return true;
     }
+
+    /**
+     * Resolved link for footer/banner: external URL wins, else internal path if text exists.
+     */
+    public function legalHref(string $urlKey, string $textKey, string $internalPath): string
+    {
+        $url = $this->normalizeLegalUrl($this->get($urlKey));
+        if ($url !== '') {
+            return $url;
+        }
+        if (trim($this->get($textKey)) !== '') {
+            return $internalPath;
+        }
+        return '';
+    }
+
+    public function normalizeLegalUrl(string $url): string
+    {
+        $url = trim($url);
+        if ($url === '') {
+            return '';
+        }
+        if (preg_match('#^https?://#i', $url) !== 1) {
+            return '';
+        }
+        return $url;
+    }
+
+    public function isExternalHref(string $href): bool
+    {
+        return preg_match('#^https?://#i', $href) === 1;
+    }
 }

@@ -1,6 +1,7 @@
 RewriteEngine On
 
-# Protect uploads from PHP execution is handled via uploads/.htaccess
+# Base Path setzen
+RewriteBase /
 
 # Redirect to front controller
 RewriteCond %{REQUEST_FILENAME} !-f
