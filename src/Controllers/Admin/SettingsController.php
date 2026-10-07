@@ -9,7 +9,9 @@ use App\Services\AuthService;
 use App\Services\CsrfService;
 use App\Services\FachbereichService;
 use App\Services\SettingsService;
+use App\Services\UpdateService;
 use App\Services\UploadService;
+use RuntimeException;
 use Psr\Http\Message\ResponseInterface as Response;
 use Psr\Http\Message\ServerRequestInterface as Request;
 use Slim\Views\Twig;
@@ -23,7 +25,8 @@ final class SettingsController
         private readonly CsrfService $csrf,
         private readonly AuthService $auth,
         private readonly FachbereichService $fachbereiche,
-        private readonly AnmeldungService $anmeldungen
+        private readonly AnmeldungService $anmeldungen,
+        private readonly UpdateService $updater
     ) {
     }
 
@@ -224,6 +227,89 @@ final class SettingsController
             ->withStatus(302);
     }
 
+    public function saveUpdateSource(Request $request, Response $response): Response
+    {
+        $denied = $this->requireFullAdmin($response);
+        if ($denied !== null) {
+            return $denied;
+        }
+
+        $data = (array) $request->getParsedBody();
+        try {
+            $this->updater->savePreferences(
+                trim((string) ($data['update_repo_url'] ?? '')),
+                trim((string) ($data['update_ref'] ?? UpdateService::DEFAULT_REF))
+            );
+            $_SESSION['flash'] = 'Update-Quelle gespeichert. Beim nächsten Admin-Login wird automatisch auf Updates geprüft.';
+        } catch (\Throwable $e) {
+            $_SESSION['flash_error'] = $e->getMessage();
+        }
+
+        return $response
+            ->withHeader('Location', '/administrator/einstellungen?tab=update')
+            ->withStatus(302);
+    }
+
+    public function checkUpdate(Request $request, Response $response): Response
+    {
+        $denied = $this->requireFullAdmin($response);
+        if ($denied !== null) {
+            return $denied;
+        }
+
+        try {
+            if (!$this->updater->isConfigured()) {
+                throw new RuntimeException('Bitte zuerst die Update-Quelle speichern.');
+            }
+            $result = $this->updater->checkForUpdate(true);
+            if ($result === null) {
+                throw new RuntimeException('Remote-Version konnte nicht gelesen werden. URL und Branch/Tag prüfen.');
+            }
+            if ($result['available']) {
+                $_SESSION['flash'] = 'Update verfügbar: ' . $result['current'] . ' → ' . $result['remote'] . '.';
+            } else {
+                $_SESSION['flash'] = 'Aktuell: Version ' . $result['current']
+                    . ' (Remote: ' . $result['remote'] . ').';
+            }
+        } catch (\Throwable $e) {
+            $_SESSION['flash_error'] = $e->getMessage();
+        }
+
+        return $response
+            ->withHeader('Location', '/administrator/einstellungen?tab=update')
+            ->withStatus(302);
+    }
+
+    public function runUpdate(Request $request, Response $response): Response
+    {
+        $denied = $this->requireFullAdmin($response);
+        if ($denied !== null) {
+            return $denied;
+        }
+
+        $data = (array) $request->getParsedBody();
+        $confirm = trim((string) ($data['confirm'] ?? ''));
+        if ($confirm !== 'UPDATE') {
+            $_SESSION['flash_error'] = 'Bitte zur Bestätigung genau UPDATE eingeben.';
+            return $response
+                ->withHeader('Location', '/administrator/einstellungen?tab=update')
+                ->withStatus(302);
+        }
+
+        try {
+            @set_time_limit(300);
+            $result = $this->updater->applyConfigured();
+            $_SESSION['flash'] = $result['message'];
+            unset($_SESSION['update_notice']);
+        } catch (\Throwable $e) {
+            $_SESSION['flash_error'] = $e->getMessage();
+        }
+
+        return $response
+            ->withHeader('Location', '/administrator/einstellungen?tab=update')
+            ->withStatus(302);
+    }
+
     private function requireFullAdmin(Response $response): ?Response
     {
         if ($this->auth->canManageSettings()) {
@@ -243,10 +329,29 @@ final class SettingsController
         ?array $settingsOverride = null,
         ?string $activeTab = null
     ): Response {
-        $allowed = ['darstellung', 'zeitraum', 'email', 'rechtliches', 'benutzer', 'daten'];
+        $allowed = ['darstellung', 'zeitraum', 'email', 'rechtliches', 'benutzer', 'daten', 'update'];
         $tab = $activeTab ?? 'darstellung';
         if (!in_array($tab, $allowed, true)) {
             $tab = 'darstellung';
+        }
+
+        $updateStatus = null;
+        if ($tab === 'update') {
+            try {
+                $updateStatus = $this->updater->status();
+            } catch (\Throwable $e) {
+                $error = $error ?? $e->getMessage();
+                $updateStatus = [
+                    'repo_url' => $this->updater->configuredRepoUrl(),
+                    'ref' => $this->updater->configuredRef(),
+                    'current' => $this->updater->currentVersion(),
+                    'remote' => null,
+                    'up_to_date' => null,
+                    'configured' => $this->updater->isConfigured(),
+                    'download_url' => '',
+                    'check_at' => '',
+                ];
+            }
         }
 
         return $this->view->render($response, 'admin/settings.twig', [
@@ -258,6 +363,7 @@ final class SettingsController
             'error' => $error,
             'active_tab' => $tab,
             'current_admin_id' => $this->auth->id(),
+            'update_status' => $updateStatus,
         ]);
     }
 }

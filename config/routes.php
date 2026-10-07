@@ -56,6 +56,9 @@ return static function (App $app): void {
             $admin->post('/einstellungen/benutzer', [SettingsController::class, 'createUser']);
             $admin->post('/einstellungen/benutzer/{id}/delete', [SettingsController::class, 'deleteUser']);
             $admin->post('/einstellungen/daten-loeschen', [SettingsController::class, 'wipeData']);
+            $admin->post('/einstellungen/update-quelle', [SettingsController::class, 'saveUpdateSource']);
+            $admin->post('/einstellungen/update-check', [SettingsController::class, 'checkUpdate']);
+            $admin->post('/einstellungen/update', [SettingsController::class, 'runUpdate']);
         })->add(AdminAuthMiddleware::class);
     });
 };

@@ -5,7 +5,7 @@
 <section class="settings-page">
     <header class="settings-page-header">
         <h1 class="h2 mb-1">Einstellungen</h1>
-        <p class="text-muted mb-0">Darstellung, Zeitraum, Benutzer und Datenverwaltung</p>
+        <p class="text-muted mb-0">Darstellung, Zeitraum, Benutzer, Updates und Datenverwaltung</p>
     </header>
 
     {% if flash %}<div class="alert alert-success mt-3 mb-0">{{ flash }}</div>{% endif %}
@@ -18,6 +18,7 @@
             <button type="button" class="settings-nav-item{% if tab == 'email' %} is-active{% endif %}" data-settings-tab="email">E-Mail</button>
             <button type="button" class="settings-nav-item{% if tab == 'rechtliches' %} is-active{% endif %}" data-settings-tab="rechtliches">Rechtliches</button>
             <button type="button" class="settings-nav-item{% if tab == 'benutzer' %} is-active{% endif %}" data-settings-tab="benutzer">Benutzer</button>
+            <button type="button" class="settings-nav-item{% if tab == 'update' %} is-active{% endif %}" data-settings-tab="update">Update</button>
             <button type="button" class="settings-nav-item settings-nav-item-danger{% if tab == 'daten' %} is-active{% endif %}" data-settings-tab="daten">Daten</button>
         </nav>
 
@@ -219,6 +220,105 @@
                         </div>
                         <button type="submit" class="btn btn-primary mt-3">Benutzer anlegen</button>
                     </form>
+                </div>
+            </div>
+
+            {# —— Update —— #}
+            <div class="settings-panel{% if tab == 'update' %} is-active{% endif %}" data-panel="update">
+                <h2 class="settings-panel-title">Update</h2>
+                <p class="settings-panel-lead">GitHub-Quelle einmal hinterlegen. Danach wird beim Admin-Login automatisch auf Updates hingewiesen.</p>
+
+                {% set u = update_status|default({
+                    repo_url: settings.update_repo_url|default(''),
+                    ref: settings.update_ref|default('main'),
+                    current: '—',
+                    remote: null,
+                    up_to_date: null,
+                    configured: false,
+                    check_at: ''
+                }) %}
+
+                <div class="settings-block">
+                    <h3 class="settings-block-title">Update-Quelle</h3>
+                    <p class="text-muted small mb-3">Wird dauerhaft gespeichert und für Prüfung sowie Update verwendet.</p>
+                    <form method="post" action="/administrator/einstellungen/update-quelle">
+                        {{ csrf.field()|raw }}
+                        <div class="mb-3">
+                            <label class="form-label" for="update_repo_url">GitHub-Repository</label>
+                            <input class="form-control" type="url" name="update_repo_url" id="update_repo_url" required
+                                   placeholder="https://github.com/iAmCriptic/Grundschultag-Anmeldung"
+                                   value="{{ u.repo_url }}">
+                            <div class="form-text">Öffentliches Repo, z.&nbsp;B. <code>https://github.com/iAmCriptic/Grundschultag-Anmeldung</code></div>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label" for="update_ref">Branch oder Tag</label>
+                            <input class="form-control" type="text" name="update_ref" id="update_ref" required
+                                   placeholder="main" value="{{ u.ref|default('main') }}" maxlength="100" pattern="[A-Za-z0-9._/\-]+">
+                        </div>
+                        <button type="submit" class="btn btn-primary">Quelle speichern</button>
+                    </form>
+                </div>
+
+                <div class="settings-block">
+                    <h3 class="settings-block-title">Status</h3>
+                    {% if not u.configured %}
+                        <p class="mb-0 text-muted">Noch keine Quelle gespeichert.</p>
+                    {% else %}
+                        <dl class="row mb-0">
+                            <dt class="col-sm-4">Gespeicherte Quelle</dt>
+                            <dd class="col-sm-8"><code>{{ u.repo_url }}</code> @ <code>{{ u.ref }}</code></dd>
+                            <dt class="col-sm-4">Installierte Version</dt>
+                            <dd class="col-sm-8"><code>{{ u.current }}</code></dd>
+                            <dt class="col-sm-4">Remote-Version</dt>
+                            <dd class="col-sm-8">
+                                {% if u.remote %}
+                                    <code>{{ u.remote }}</code>
+                                    {% if u.up_to_date %}
+                                        <span class="text-success ms-2">aktuell</span>
+                                    {% else %}
+                                        <span class="text-warning ms-2">Update verfügbar</span>
+                                    {% endif %}
+                                {% else %}
+                                    <span class="text-muted">noch nicht geprüft</span>
+                                {% endif %}
+                            </dd>
+                            {% if u.check_at %}
+                                <dt class="col-sm-4">Letzte Prüfung</dt>
+                                <dd class="col-sm-8">{{ u.check_at }}</dd>
+                            {% endif %}
+                            {% if settings.update_last_at|default('') %}
+                                <dt class="col-sm-4">Letztes Update</dt>
+                                <dd class="col-sm-8">{{ settings.update_last_at }}{% if settings.update_last_version|default('') %} ({{ settings.update_last_version }}){% endif %}</dd>
+                            {% endif %}
+                        </dl>
+                    {% endif %}
+                </div>
+
+                <div class="settings-block">
+                    <h3 class="settings-block-title">Aktualisieren</h3>
+                    <p class="text-muted small mb-3">
+                        Nutzt die gespeicherte Quelle. Erhalten bleiben: <code>.env</code>, <code>vendor/</code>, <code>public/uploads/</code> und <code>storage/</code>.
+                        Neue Composer-Abhängigkeiten müssen ggf. manuell in <code>vendor/</code> nachgezogen werden.
+                    </p>
+                    {% if not u.configured %}
+                        <p class="mb-0 text-muted">Zuerst die Update-Quelle speichern.</p>
+                    {% else %}
+                        <div class="d-flex flex-wrap gap-2 mb-3">
+                            <form method="post" action="/administrator/einstellungen/update-check" class="d-inline">
+                                {{ csrf.field()|raw }}
+                                <button type="submit" class="btn btn-outline-primary">Jetzt prüfen</button>
+                            </form>
+                        </div>
+                        <form method="post" action="/administrator/einstellungen/update"
+                              onsubmit="return confirm('System jetzt aus dem gespeicherten GitHub-Repository aktualisieren?');">
+                            {{ csrf.field()|raw }}
+                            <div class="mb-3">
+                                <label class="form-label" for="update_confirm">Zur Bestätigung <code>UPDATE</code> eingeben</label>
+                                <input class="form-control" type="text" name="confirm" id="update_confirm" autocomplete="off" required placeholder="UPDATE">
+                            </div>
+                            <button type="submit" class="btn btn-primary">Jetzt aktualisieren</button>
+                        </form>
+                    {% endif %}
                 </div>
             </div>
 

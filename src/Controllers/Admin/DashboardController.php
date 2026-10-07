@@ -7,6 +7,7 @@ namespace App\Controllers\Admin;
 use App\Services\AnmeldungService;
 use App\Services\AuthService;
 use App\Services\FachbereichService;
+use App\Services\UpdateService;
 use Psr\Http\Message\ResponseInterface as Response;
 use Psr\Http\Message\ServerRequestInterface as Request;
 use Slim\Views\Twig;
@@ -17,7 +18,8 @@ final class DashboardController
         private readonly Twig $view,
         private readonly FachbereichService $fachbereiche,
         private readonly AnmeldungService $anmeldungen,
-        private readonly AuthService $auth
+        private readonly AuthService $auth,
+        private readonly UpdateService $updater
     ) {
     }
 
@@ -28,6 +30,17 @@ final class DashboardController
         $flash = $_SESSION['flash'] ?? null;
         unset($_SESSION['flash']);
 
+        $updateNotice = null;
+        if ($this->auth->canManageSettings()) {
+            $updateNotice = $_SESSION['update_notice'] ?? null;
+            if ($updateNotice === null && $this->updater->isConfigured()) {
+                $updateNotice = $this->updater->updateNotice(false);
+                if ($updateNotice !== null) {
+                    $_SESSION['update_notice'] = $updateNotice;
+                }
+            }
+        }
+
         return $this->view->render($response, 'admin/dashboard.twig', [
             'fachbereiche' => $this->fachbereiche->withStats($scopeId),
             'active_count' => $this->anmeldungen->countActive(
@@ -36,6 +49,7 @@ final class DashboardController
             'admin_username' => $this->auth->username() ?? '',
             'admin_is_full' => $this->auth->isFullAdmin(),
             'flash' => $flash,
+            'update_notice' => $updateNotice,
         ]);
     }
 

@@ -19,6 +19,7 @@ use App\Services\InstallerService;
 use App\Services\MailService;
 use App\Services\SchemaMigrator;
 use App\Services\SettingsService;
+use App\Services\UpdateService;
 use App\Services\UploadService;
 use Psr\Container\ContainerInterface;
 use Slim\Views\Twig;
@@ -92,6 +93,10 @@ return [
     InstallerService::class => static fn (ContainerInterface $c) => new InstallerService($c->get('root_path')),
     MailService::class => static fn (ContainerInterface $c) => new MailService($c->get('settings')),
     SettingsService::class => static fn (ContainerInterface $c) => new SettingsService($c->get(PDO::class)),
+    UpdateService::class => static fn (ContainerInterface $c) => new UpdateService(
+        $c->get('root_path'),
+        $c->get(SettingsService::class)
+    ),
     AuthService::class => static fn (ContainerInterface $c) => new AuthService($c->get(PDO::class)),
     FachbereichService::class => static fn (ContainerInterface $c) => new FachbereichService($c->get(PDO::class)),
     AnmeldungService::class => static function (ContainerInterface $c) {
@@ -130,7 +135,8 @@ return [
         return new AuthController(
             $c->get(Twig::class),
             $c->get(AuthService::class),
-            $c->get(CsrfService::class)
+            $c->get(CsrfService::class),
+            $c->get(UpdateService::class)
         );
     },
     DashboardController::class => static function (ContainerInterface $c) {
@@ -138,7 +144,8 @@ return [
             $c->get(Twig::class),
             $c->get(FachbereichService::class),
             $c->get(AnmeldungService::class),
-            $c->get(AuthService::class)
+            $c->get(AuthService::class),
+            $c->get(UpdateService::class)
         );
     },
     FachbereichController::class => static function (ContainerInterface $c) {
@@ -158,7 +165,8 @@ return [
             $c->get(CsrfService::class),
             $c->get(AuthService::class),
             $c->get(FachbereichService::class),
-            $c->get(AnmeldungService::class)
+            $c->get(AnmeldungService::class),
+            $c->get(UpdateService::class)
         );
     },
     ExportController::class => static function (ContainerInterface $c) {

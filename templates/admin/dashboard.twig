@@ -5,6 +5,15 @@
     <div class="card-body p-4">
         <h1 class="h2 mb-3">Übersicht</h1>
         {% if flash %}<div class="alert alert-info">{{ flash }}</div>{% endif %}
+        {% if update_notice %}
+            <div class="alert alert-warning d-flex flex-wrap align-items-center justify-content-between gap-2">
+                <div>
+                    <strong>Update verfügbar:</strong>
+                    Version <code>{{ update_notice.current }}</code> → <code>{{ update_notice.remote }}</code>
+                </div>
+                <a class="btn btn-sm btn-warning" href="/administrator/einstellungen?tab=update">Zum Update</a>
+            </div>
+        {% endif %}
         <p>Angemeldet als <strong>{{ admin_username }}</strong>. Aktive Anmeldungen: <strong>{{ active_count }}</strong></p>
 
         <div class="row g-3 mb-4">

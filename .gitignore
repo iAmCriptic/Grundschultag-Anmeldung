@@ -1,6 +1,7 @@
 /vendor/
 /.env
 /storage/install.lock
+/storage/tmp/
 /public/uploads/*
 !/public/uploads/.htaccess
 !/public/uploads/.gitkeep

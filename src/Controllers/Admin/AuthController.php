@@ -6,6 +6,7 @@ namespace App\Controllers\Admin;
 
 use App\Services\AuthService;
 use App\Services\CsrfService;
+use App\Services\UpdateService;
 use Psr\Http\Message\ResponseInterface as Response;
 use Psr\Http\Message\ServerRequestInterface as Request;
 use Slim\Views\Twig;
@@ -15,7 +16,8 @@ final class AuthController
     public function __construct(
         private readonly Twig $view,
         private readonly AuthService $auth,
-        private readonly CsrfService $csrf
+        private readonly CsrfService $csrf,
+        private readonly UpdateService $updater
     ) {
     }
 
@@ -39,12 +41,23 @@ final class AuthController
                 'error' => 'Benutzername oder Passwort ungültig.',
             ]);
         }
+
+        unset($_SESSION['update_notice']);
+        if ($this->auth->canManageSettings() && $this->updater->isConfigured()) {
+            // Frische Prüfung beim Login (Cache höchstens 6h)
+            $notice = $this->updater->updateNotice(false);
+            if ($notice !== null) {
+                $_SESSION['update_notice'] = $notice;
+            }
+        }
+
         return $response->withHeader('Location', '/administrator')->withStatus(302);
     }
 
     public function logout(Request $request, Response $response): Response
     {
         $this->auth->logout();
+        unset($_SESSION['update_notice']);
         return $response->withHeader('Location', '/administrator/login')->withStatus(302);
     }
 }
