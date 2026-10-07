@@ -21,7 +21,7 @@
             </div>
             <div class="mb-3">
                 <label class="form-label" for="teaser_text">Teaser-Text</label>
-                <textarea class="form-control" name="teaser_text" id="teaser_text" rows="5">{{ fachbereich.teaser_text|default('') }}</textarea>
+                <textarea class="form-control rich-editor" name="teaser_text" id="teaser_text" rows="5">{{ fachbereich.teaser_text|default('') }}</textarea>
             </div>
             <div class="mb-3">
                 <label class="form-label" for="teaser_bild">Teaser-Bild</label>
@@ -102,6 +102,7 @@
 {% endblock %}
 
 {% block scripts %}
+{% include 'partials/rich_editor_assets.twig' %}
 {% if fachbereich and fachbereich.id and schienen is not empty %}
 <script>
 (function () {

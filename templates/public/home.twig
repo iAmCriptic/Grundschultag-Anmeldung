@@ -10,17 +10,16 @@
     {% endif %}
     <div class="card-body p-4">
         <h1 class="h2 mb-3">{{ app_name }}</h1>
-        <div class="mb-3">{{ welcome_text|nl2br }}</div>
+        <div class="mb-3 rich-content">{{ welcome_text|rich }}</div>
+        {% if registration_start and registration_end %}
+            <p class="fw-semibold text-uppercase mb-3">
+                Anmeldung möglich vom {{ registration_start|date('d.m.Y (H:i)') }} bis {{ registration_end|date('d.m.Y (H:i)') }}
+            </p>
+        {% endif %}
         {% if open %}
             <p class="mb-0"><a class="btn btn-primary btn-lg" href="/anmelden">Anmelden</a></p>
         {% else %}
             <div class="alert alert-warning">Die Anmeldung ist derzeit geschlossen.</div>
-            {% if registration_start or registration_end %}
-                <p class="text-muted">
-                    {% if registration_start %}Von {{ registration_start|replace({'T': ' '}) }}{% endif %}
-                    {% if registration_end %} bis {{ registration_end|replace({'T': ' '}) }}{% endif %}
-                </p>
-            {% endif %}
             <div class="d-flex flex-wrap gap-2">
                 {% if admin_logged_in %}
                     <a class="btn btn-primary" href="/anmelden">Anmeldung testen</a>

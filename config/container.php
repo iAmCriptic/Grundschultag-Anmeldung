@@ -15,6 +15,7 @@ use App\Services\AuthService;
 use App\Services\CsrfService;
 use App\Services\ExportService;
 use App\Services\FachbereichService;
+use App\Services\HtmlContentService;
 use App\Services\InstallerService;
 use App\Services\MailService;
 use App\Services\SchemaMigrator;
@@ -23,6 +24,7 @@ use App\Services\UpdateService;
 use App\Services\UploadService;
 use Psr\Container\ContainerInterface;
 use Slim\Views\Twig;
+use Twig\TwigFilter;
 
 $root = dirname(__DIR__);
 $settings = require __DIR__ . '/settings.php';
@@ -91,10 +93,19 @@ return [
             'datenschutz_external',
             $datenschutzHref !== '' && preg_match('#^https?://#i', $datenschutzHref) === 1
         );
+
+        $htmlContent = $c->get(HtmlContentService::class);
+        $twig->getEnvironment()->addFilter(new TwigFilter(
+            'rich',
+            static fn (?string $value): string => $htmlContent->toSafeHtml((string) ($value ?? '')),
+            ['is_safe' => ['html']]
+        ));
+
         return $twig;
     },
 
     CsrfService::class => static fn () => new CsrfService(),
+    HtmlContentService::class => static fn () => new HtmlContentService(),
     InstallerService::class => static fn (ContainerInterface $c) => new InstallerService($c->get('root_path')),
     MailService::class => static fn (ContainerInterface $c) => new MailService($c->get('settings')),
     SettingsService::class => static fn (ContainerInterface $c) => new SettingsService($c->get(PDO::class)),
@@ -160,7 +171,8 @@ return [
             $c->get(FachbereichService::class),
             $c->get(UploadService::class),
             $c->get(CsrfService::class),
-            $c->get(AuthService::class)
+            $c->get(AuthService::class),
+            $c->get(HtmlContentService::class)
         );
     },
     SettingsController::class => static function (ContainerInterface $c) {
@@ -172,7 +184,8 @@ return [
             $c->get(AuthService::class),
             $c->get(FachbereichService::class),
             $c->get(AnmeldungService::class),
-            $c->get(UpdateService::class)
+            $c->get(UpdateService::class),
+            $c->get(HtmlContentService::class)
         );
     },
     ExportController::class => static function (ContainerInterface $c) {

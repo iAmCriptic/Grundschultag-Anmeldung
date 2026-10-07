@@ -8,6 +8,7 @@ use App\Services\AnmeldungService;
 use App\Services\AuthService;
 use App\Services\CsrfService;
 use App\Services\FachbereichService;
+use App\Services\HtmlContentService;
 use App\Services\SettingsService;
 use App\Services\UpdateService;
 use App\Services\UploadService;
@@ -26,7 +27,8 @@ final class SettingsController
         private readonly AuthService $auth,
         private readonly FachbereichService $fachbereiche,
         private readonly AnmeldungService $anmeldungen,
-        private readonly UpdateService $updater
+        private readonly UpdateService $updater,
+        private readonly HtmlContentService $html
     ) {
     }
 
@@ -123,7 +125,7 @@ final class SettingsController
 
             $this->settings->setMany([
                 'site_title' => $siteTitle,
-                'welcome_text' => (string) ($data['welcome_text'] ?? ''),
+                'welcome_text' => $this->html->sanitize((string) ($data['welcome_text'] ?? '')),
                 'welcome_image' => $image,
                 'site_logo' => $logo,
                 'registration_start' => trim((string) ($data['registration_start'] ?? '')),
@@ -132,9 +134,9 @@ final class SettingsController
                 'mail_from_name' => trim((string) ($data['mail_from_name'] ?? '')),
                 'mail_subject' => trim((string) ($data['mail_subject'] ?? '')),
                 'impressum_url' => $this->settings->normalizeLegalUrl($impressumUrl),
-                'impressum_text' => (string) ($data['impressum_text'] ?? ''),
+                'impressum_text' => $this->html->sanitize((string) ($data['impressum_text'] ?? '')),
                 'datenschutz_url' => $this->settings->normalizeLegalUrl($datenschutzUrl),
-                'datenschutz_text' => (string) ($data['datenschutz_text'] ?? ''),
+                'datenschutz_text' => $this->html->sanitize((string) ($data['datenschutz_text'] ?? '')),
             ]);
 
             $this->view->getEnvironment()->addGlobal('app_name', $siteTitle);

@@ -173,14 +173,17 @@ final class AnmeldungService
         );
 
         $body = "Hallo {$anmeldung['name']},\n\n"
-            . "vielen Dank für Ihre Anmeldung zum Grundschultag.\n\n"
+            . "vielen Dank für Ihre Anmeldung.\n\n"
+            . "Ihre Anmeldung:\n"
             . "Fachbereich: {$anmeldung['fachbereich_name']}\n"
             . "Schiene: {$anmeldung['schiene_name']}\n"
-            . "E-Mail: {$anmeldung['email']}\n\n"
-            . "Bestätigung anzeigen: {$thanksUrl}\n\n"
-            . "Falls Sie die Anmeldung stornieren möchten:\n{$cancelUrl}\n\n"
-            . "Freundliche Grüße\n"
-            . $fromName . "\n";
+            . "Name: {$anmeldung['name']}\n\n"
+            . "Sollten Sie den Termin nicht wahrnehmen können, nutzen Sie bitte folgenden Link, um Ihre Anmeldung zu stornieren:\n"
+            . "{$cancelUrl}\n\n"
+            . "Mit freundlichen Grüßen\n"
+            . "Das Team der {$fromName}\n\n"
+            . "Webansicht Ihrer Anmeldung:\n"
+            . "{$thanksUrl}\n";
 
         if ($from !== '') {
             $this->mail->send((string) $anmeldung['email'], $subject, $body, $from, $fromName);

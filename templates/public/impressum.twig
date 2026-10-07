@@ -7,7 +7,7 @@
         {% if missing %}
             <p class="text-muted mb-0">Das Impressum ist noch nicht hinterlegt.</p>
         {% else %}
-            <div class="legal-body">{{ body|nl2br }}</div>
+            <div class="legal-body rich-content">{{ body|rich }}</div>
         {% endif %}
     </div>
 </section>

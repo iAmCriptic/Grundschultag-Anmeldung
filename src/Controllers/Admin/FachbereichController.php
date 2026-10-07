@@ -7,6 +7,7 @@ namespace App\Controllers\Admin;
 use App\Services\AuthService;
 use App\Services\CsrfService;
 use App\Services\FachbereichService;
+use App\Services\HtmlContentService;
 use App\Services\UploadService;
 use Psr\Http\Message\ResponseInterface as Response;
 use Psr\Http\Message\ServerRequestInterface as Request;
@@ -19,7 +20,8 @@ final class FachbereichController
         private readonly FachbereichService $fachbereiche,
         private readonly UploadService $uploads,
         private readonly CsrfService $csrf,
-        private readonly AuthService $auth
+        private readonly AuthService $auth,
+        private readonly HtmlContentService $html
     ) {
     }
 
@@ -71,7 +73,7 @@ final class FachbereichController
             }
             $id = $this->fachbereiche->create([
                 'name' => $name,
-                'teaser_text' => trim((string) ($data['teaser_text'] ?? '')),
+                'teaser_text' => $this->html->sanitize((string) ($data['teaser_text'] ?? '')),
                 'teaser_bild' => $bild,
                 'aktiv' => isset($data['aktiv']) ? 1 : 0,
                 'sortierung' => (int) ($data['sortierung'] ?? 0),
@@ -138,7 +140,7 @@ final class FachbereichController
             }
             $this->fachbereiche->update($id, [
                 'name' => trim((string) ($data['name'] ?? '')),
-                'teaser_text' => trim((string) ($data['teaser_text'] ?? '')),
+                'teaser_text' => $this->html->sanitize((string) ($data['teaser_text'] ?? '')),
                 'teaser_bild' => $bild,
                 'aktiv' => isset($data['aktiv']) ? 1 : 0,
                 'sortierung' => (int) ($data['sortierung'] ?? 0),

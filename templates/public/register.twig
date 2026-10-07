@@ -73,6 +73,16 @@ const teaser = document.getElementById('teaser');
 const teaserMedia = document.getElementById('teaser-media');
 const teaserText = document.getElementById('teaser-text');
 
+function formatRichText(text) {
+    if (!text) return '';
+    if (/<\s*[a-z][^>]*>/i.test(text)) return text;
+    return String(text)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/\n/g, '<br>');
+}
+
 function render() {
     const id = parseInt(fbSelect.value || '0', 10);
     const fb = fachbereiche.find(f => parseInt(f.id, 10) === id);
@@ -83,7 +93,7 @@ function render() {
         return;
     }
     teaser.hidden = false;
-    teaserText.innerHTML = (fb.teaser_text || '').replace(/\n/g, '<br>');
+    teaserText.innerHTML = formatRichText(fb.teaser_text || '');
     teaserMedia.innerHTML = fb.teaser_bild
         ? '<img src="/uploads/' + fb.teaser_bild + '" alt="">'
         : '';

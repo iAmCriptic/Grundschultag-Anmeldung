@@ -64,7 +64,7 @@
                         <h3 class="settings-block-title">Willkommensseite</h3>
                         <div class="mb-3">
                             <label class="form-label" for="welcome_text">Willkommenstext</label>
-                            <textarea class="form-control" name="welcome_text" id="welcome_text" rows="7">{{ settings.welcome_text|default('') }}</textarea>
+                            <textarea class="form-control rich-editor" name="welcome_text" id="welcome_text" rows="7">{{ settings.welcome_text|default('') }}</textarea>
                         </div>
                         <div class="mb-3">
                             <label class="form-label" for="welcome_image">Willkommensbild</label>
@@ -135,7 +135,7 @@
                         </div>
                         <div class="mb-0">
                             <label class="form-label" for="impressum_text">Oder Text</label>
-                            <textarea class="form-control" name="impressum_text" id="impressum_text" rows="5">{{ settings.impressum_text|default('') }}</textarea>
+                            <textarea class="form-control rich-editor" name="impressum_text" id="impressum_text" rows="5">{{ settings.impressum_text|default('') }}</textarea>
                         </div>
                     </div>
 
@@ -147,7 +147,7 @@
                         </div>
                         <div class="mb-0">
                             <label class="form-label" for="datenschutz_text">Oder Text</label>
-                            <textarea class="form-control" name="datenschutz_text" id="datenschutz_text" rows="5">{{ settings.datenschutz_text|default('') }}</textarea>
+                            <textarea class="form-control rich-editor" name="datenschutz_text" id="datenschutz_text" rows="5">{{ settings.datenschutz_text|default('') }}</textarea>
                         </div>
                     </div>
                     <button type="submit" class="btn btn-primary">Speichern</button>
@@ -356,6 +356,7 @@
 {% endblock %}
 
 {% block scripts %}
+{% include 'partials/rich_editor_assets.twig' %}
 <script>
 (function () {
     var navItems = document.querySelectorAll('[data-settings-tab]');
@@ -379,6 +380,9 @@
             var url = new URL(window.location.href);
             url.searchParams.set('tab', name);
             history.replaceState(null, '', url.toString());
+        }
+        if (window.AppRichEditor) {
+            window.setTimeout(window.AppRichEditor.refresh, 50);
         }
     }
 
