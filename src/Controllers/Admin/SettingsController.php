@@ -123,6 +123,18 @@ final class SettingsController
                 throw new \RuntimeException('Der Seitentitel darf höchstens 150 Zeichen lang sein.');
             }
 
+            $aboutLabel = trim((string) ($data['about_link_label'] ?? ''));
+            if ($aboutLabel === '') {
+                $aboutLabel = 'Woher kommt diese Seite';
+            }
+            if (mb_strlen($aboutLabel) > 80) {
+                throw new \RuntimeException('Der Linkname darf höchstens 80 Zeichen lang sein.');
+            }
+
+            $mailBody = (string) ($data['mail_body'] ?? '');
+            // Normalize Windows newlines for plain-text mail templates
+            $mailBody = str_replace("\r\n", "\n", $mailBody);
+
             $this->settings->setMany([
                 'site_title' => $siteTitle,
                 'welcome_text' => $this->html->sanitize((string) ($data['welcome_text'] ?? '')),
@@ -133,18 +145,24 @@ final class SettingsController
                 'mail_from' => trim((string) ($data['mail_from'] ?? '')),
                 'mail_from_name' => trim((string) ($data['mail_from_name'] ?? '')),
                 'mail_subject' => trim((string) ($data['mail_subject'] ?? '')),
+                'mail_body' => $mailBody,
                 'impressum_url' => $this->settings->normalizeLegalUrl($impressumUrl),
                 'impressum_text' => $this->html->sanitize((string) ($data['impressum_text'] ?? '')),
                 'datenschutz_url' => $this->settings->normalizeLegalUrl($datenschutzUrl),
                 'datenschutz_text' => $this->html->sanitize((string) ($data['datenschutz_text'] ?? '')),
+                'about_link_label' => $aboutLabel,
+                'about_text' => $this->html->sanitize((string) ($data['about_text'] ?? '')),
             ]);
 
             $this->view->getEnvironment()->addGlobal('app_name', $siteTitle);
             $this->view->getEnvironment()->addGlobal('site_logo', $logo);
             $impressumHref = $this->settings->legalHref('impressum_url', 'impressum_text', '/impressum');
             $datenschutzHref = $this->settings->legalHref('datenschutz_url', 'datenschutz_text', '/datenschutz');
+            $aboutHref = trim($this->settings->get('about_text')) !== '' ? '/woher' : '';
             $this->view->getEnvironment()->addGlobal('impressum_href', $impressumHref);
             $this->view->getEnvironment()->addGlobal('datenschutz_href', $datenschutzHref);
+            $this->view->getEnvironment()->addGlobal('about_href', $aboutHref);
+            $this->view->getEnvironment()->addGlobal('about_link_label', $aboutLabel);
             $this->view->getEnvironment()->addGlobal('impressum_external', $this->settings->isExternalHref($impressumHref));
             $this->view->getEnvironment()->addGlobal('datenschutz_external', $this->settings->isExternalHref($datenschutzHref));
 
@@ -366,8 +384,14 @@ final class SettingsController
             }
         }
 
+        $settings = $settingsOverride ?? $this->settings->all();
+        if (trim((string) ($settings['mail_body'] ?? '')) === '') {
+            $settings['mail_body'] = AnmeldungService::defaultMailBody();
+        }
+
         return $this->view->render($response, 'admin/settings.twig', [
-            'settings' => $settingsOverride ?? $this->settings->all(),
+            'settings' => $settings,
+            'mail_body_default' => AnmeldungService::defaultMailBody(),
             'users' => $this->auth->listUsers(),
             'fachbereiche' => $this->fachbereiche->all(),
             'anmeldungen_total' => $this->anmeldungen->countAll(),

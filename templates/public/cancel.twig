@@ -8,7 +8,7 @@
         {% if done %}
             <div class="alert alert-success">Ihre Anmeldung wurde storniert.</div>
             <dl class="detail-list mb-4">
-                <dt>Name</dt><dd>{{ anmeldung.name }}</dd>
+                <dt>Vor &amp; Nachname</dt><dd>{{ anmeldung.name }}</dd>
                 <dt>Fachbereich</dt><dd>{{ anmeldung.fachbereich_name }}</dd>
                 <dt>Schiene</dt><dd>{{ anmeldung.schiene_name }}</dd>
             </dl>
@@ -20,7 +20,7 @@
             {% if error %}<div class="alert alert-danger">{{ error }}</div>{% endif %}
             <p>Möchten Sie die folgende Anmeldung wirklich stornieren?</p>
             <dl class="detail-list mb-4">
-                <dt>Name</dt><dd>{{ anmeldung.name }}</dd>
+                <dt>Vor &amp; Nachname</dt><dd>{{ anmeldung.name }}</dd>
                 <dt>E-Mail</dt><dd>{{ anmeldung.email }}</dd>
                 <dt>Fachbereich</dt><dd>{{ anmeldung.fachbereich_name }}</dd>
                 <dt>Schiene</dt><dd>{{ anmeldung.schiene_name }}</dd>

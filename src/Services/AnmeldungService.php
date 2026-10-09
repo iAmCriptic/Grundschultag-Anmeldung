@@ -162,32 +162,53 @@ final class AnmeldungService
         $cancelUrl = $baseUrl . '/stornieren/' . $anmeldung['token'];
         $thanksUrl = $baseUrl . '/danke/' . $anmeldung['token'];
 
-        $subject = $this->settings->get(
-            'mail_subject',
-            (string) ($this->appSettings['mail']['subject'] ?? 'Ihre Anmeldung zum Grundschultag')
-        );
         $from = $this->settings->get('mail_from', (string) ($this->appSettings['mail']['from'] ?? ''));
         $fromName = $this->settings->get(
             'mail_from_name',
             (string) ($this->appSettings['mail']['from_name'] ?? 'Grundschultag')
         );
 
-        $body = "Hallo {$anmeldung['name']},\n\n"
-            . "vielen Dank für Ihre Anmeldung.\n\n"
-            . "Ihre Anmeldung:\n"
-            . "Fachbereich: {$anmeldung['fachbereich_name']}\n"
-            . "Schiene: {$anmeldung['schiene_name']}\n"
-            . "Name: {$anmeldung['name']}\n\n"
-            . "Sollten Sie den Termin nicht wahrnehmen können, nutzen Sie bitte folgenden Link, um Ihre Anmeldung zu stornieren:\n"
-            . "{$cancelUrl}\n\n"
-            . "Mit freundlichen Grüßen\n"
-            . "Das Team der {$fromName}\n\n"
-            . "Webansicht Ihrer Anmeldung:\n"
-            . "{$thanksUrl}\n";
+        $placeholders = [
+            '{name}' => (string) $anmeldung['name'],
+            '{email}' => (string) $anmeldung['email'],
+            '{fachbereich}' => (string) $anmeldung['fachbereich_name'],
+            '{schiene}' => (string) $anmeldung['schiene_name'],
+            '{cancel_url}' => $cancelUrl,
+            '{thanks_url}' => $thanksUrl,
+            '{from_name}' => $fromName,
+        ];
+
+        $subjectTemplate = $this->settings->get(
+            'mail_subject',
+            (string) ($this->appSettings['mail']['subject'] ?? 'Ihre Anmeldung zum Grundschultag')
+        );
+        $bodyTemplate = trim($this->settings->get('mail_body'));
+        if ($bodyTemplate === '') {
+            $bodyTemplate = self::defaultMailBody();
+        }
+
+        $subject = strtr($subjectTemplate, $placeholders);
+        $body = strtr($bodyTemplate, $placeholders);
 
         if ($from !== '') {
             $this->mail->send((string) $anmeldung['email'], $subject, $body, $from, $fromName);
         }
+    }
+
+    public static function defaultMailBody(): string
+    {
+        return "Hallo {name},\n\n"
+            . "vielen Dank für Ihre Anmeldung.\n\n"
+            . "Ihre Anmeldung:\n"
+            . "Fachbereich: {fachbereich}\n"
+            . "Schiene: {schiene}\n"
+            . "Name: {name}\n\n"
+            . "Sollten Sie den Termin nicht wahrnehmen können, nutzen Sie bitte folgenden Link, um Ihre Anmeldung zu stornieren:\n"
+            . "{cancel_url}\n\n"
+            . "Mit freundlichen Grüßen\n"
+            . "Das Team der {from_name}\n\n"
+            . "Webansicht Ihrer Anmeldung:\n"
+            . "{thanks_url}\n";
     }
 
     private function guessBaseUrl(): string

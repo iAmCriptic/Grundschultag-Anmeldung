@@ -104,7 +104,7 @@
 
                 <div class="settings-panel{% if tab == 'email' %} is-active{% endif %}" data-panel="email">
                     <h2 class="settings-panel-title">E-Mail</h2>
-                    <p class="settings-panel-lead">Absender und Betreff für Bestätigungsmails.</p>
+                    <p class="settings-panel-lead">Absender, Betreff und Text für Bestätigungsmails. Platzhalter werden beim Versand ersetzt.</p>
 
                     <div class="settings-block">
                         <div class="mb-3">
@@ -118,6 +118,21 @@
                         <div class="mb-3">
                             <label class="form-label" for="mail_subject">Betreff</label>
                             <input class="form-control" type="text" name="mail_subject" id="mail_subject" value="{{ settings.mail_subject|default('') }}">
+                            <div class="form-text">Platzhalter möglich, z.&nbsp;B. <code>{name}</code>, <code>{fachbereich}</code>.</div>
+                        </div>
+                        <div class="mb-0">
+                            <label class="form-label" for="mail_body">Mail-Text</label>
+                            <textarea class="form-control font-monospace" name="mail_body" id="mail_body" rows="14" spellcheck="true">{{ settings.mail_body|default(mail_body_default, true) }}</textarea>
+                            <div class="form-text mt-2">
+                                Verfügbare Platzhalter:
+                                <code>{name}</code>,
+                                <code>{email}</code>,
+                                <code>{fachbereich}</code>,
+                                <code>{schiene}</code>,
+                                <code>{cancel_url}</code>,
+                                <code>{thanks_url}</code>,
+                                <code>{from_name}</code>
+                            </div>
                         </div>
                     </div>
                     <button type="submit" class="btn btn-primary">Speichern</button>
@@ -148,6 +163,23 @@
                         <div class="mb-0">
                             <label class="form-label" for="datenschutz_text">Oder Text</label>
                             <textarea class="form-control rich-editor" name="datenschutz_text" id="datenschutz_text" rows="5">{{ settings.datenschutz_text|default('') }}</textarea>
+                        </div>
+                    </div>
+
+                    <div class="settings-block">
+                        <h3 class="settings-block-title">Woher kommt diese Seite</h3>
+                        <p class="text-muted small mb-3">Erscheint als zusätzlicher Link im Fußbereich, z.&nbsp;B. für einen Hinweis auf die AG oder ein Dankeschön.</p>
+                        <div class="mb-3">
+                            <label class="form-label" for="about_link_label">Linkname</label>
+                            <input class="form-control" type="text" name="about_link_label" id="about_link_label" maxlength="80"
+                                   placeholder="Woher kommt diese Seite"
+                                   value="{{ settings.about_link_label|default('Woher kommt diese Seite') }}">
+                            <div class="form-text">Text des Links im Footer und Überschrift der Seite.</div>
+                        </div>
+                        <div class="mb-0">
+                            <label class="form-label" for="about_text">Freitext</label>
+                            <textarea class="form-control rich-editor" name="about_text" id="about_text" rows="5">{{ settings.about_text|default('') }}</textarea>
+                            <div class="form-text">Leer lassen = Link wird nicht angezeigt.</div>
                         </div>
                     </div>
                     <button type="submit" class="btn btn-primary">Speichern</button>

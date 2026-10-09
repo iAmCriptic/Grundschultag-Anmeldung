@@ -70,10 +70,13 @@ final class InstallerService
             'mail_from' => $mail['from'],
             'mail_from_name' => $mail['from_name'],
             'mail_subject' => $mail['subject'],
+            'mail_body' => AnmeldungService::defaultMailBody(),
             'impressum_url' => '',
             'impressum_text' => '',
             'datenschutz_url' => '',
             'datenschutz_text' => '',
+            'about_link_label' => 'Woher kommt diese Seite',
+            'about_text' => '',
         ];
         $stmt = $pdo->prepare(
             'INSERT INTO settings (setting_key, setting_value) VALUES (:k, :v)

@@ -37,7 +37,11 @@
                 {% if datenschutz_href %}
                     <a href="{{ datenschutz_href }}"{% if datenschutz_external %} target="_blank" rel="noopener noreferrer"{% endif %}>Datenschutz</a>
                 {% endif %}
-                {% if impressum_href or datenschutz_href %}<span class="legal-sep" aria-hidden="true">·</span>{% endif %}
+                {% if about_href %}
+                    {% if impressum_href or datenschutz_href %}<span class="legal-sep" aria-hidden="true">·</span>{% endif %}
+                    <a href="{{ about_href }}">{{ about_link_label|default('Woher kommt diese Seite') }}</a>
+                {% endif %}
+                {% if impressum_href or datenschutz_href or about_href %}<span class="legal-sep" aria-hidden="true">·</span>{% endif %}
                 <a href="#" data-cookie-settings>Cookie-Einstellungen</a>
             </nav>
         </div>

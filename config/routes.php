@@ -27,6 +27,7 @@ return static function (App $app): void {
     $app->post('/stornieren/{token}', [PublicController::class, 'cancelSubmit']);
     $app->get('/impressum', [PublicController::class, 'impressum']);
     $app->get('/datenschutz', [PublicController::class, 'datenschutz']);
+    $app->get('/woher', [PublicController::class, 'about']);
 
     $app->group('/administrator', function (RouteCollectorProxy $group): void {
         $group->get('/login', [AuthController::class, 'loginForm']);

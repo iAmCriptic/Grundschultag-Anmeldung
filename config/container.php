@@ -64,6 +64,8 @@ return [
         $siteLogo = '';
         $impressumHref = '';
         $datenschutzHref = '';
+        $aboutHref = '';
+        $aboutLinkLabel = 'Woher kommt diese Seite';
         try {
             $db = $c->get('settings')['db'] ?? [];
             if (($db['name'] ?? '') !== '' && is_file($c->get('root_path') . '/.env')) {
@@ -75,16 +77,27 @@ return [
                 $siteLogo = $settingsService->get('site_logo');
                 $impressumHref = $settingsService->legalHref('impressum_url', 'impressum_text', '/impressum');
                 $datenschutzHref = $settingsService->legalHref('datenschutz_url', 'datenschutz_text', '/datenschutz');
+                $savedAboutLabel = trim($settingsService->get('about_link_label'));
+                if ($savedAboutLabel !== '') {
+                    $aboutLinkLabel = $savedAboutLabel;
+                }
+                if (trim($settingsService->get('about_text')) !== '') {
+                    $aboutHref = '/woher';
+                }
             }
         } catch (Throwable) {
             $siteLogo = '';
             $impressumHref = '';
             $datenschutzHref = '';
+            $aboutHref = '';
+            $aboutLinkLabel = 'Woher kommt diese Seite';
         }
         $twig->getEnvironment()->addGlobal('app_name', $appName);
         $twig->getEnvironment()->addGlobal('site_logo', $siteLogo);
         $twig->getEnvironment()->addGlobal('impressum_href', $impressumHref);
         $twig->getEnvironment()->addGlobal('datenschutz_href', $datenschutzHref);
+        $twig->getEnvironment()->addGlobal('about_href', $aboutHref);
+        $twig->getEnvironment()->addGlobal('about_link_label', $aboutLinkLabel);
         $twig->getEnvironment()->addGlobal(
             'impressum_external',
             $impressumHref !== '' && preg_match('#^https?://#i', $impressumHref) === 1

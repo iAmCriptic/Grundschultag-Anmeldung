@@ -150,6 +150,29 @@ final class PublicController
         );
     }
 
+    public function about(Request $request, Response $response): Response
+    {
+        $label = trim($this->settings->get('about_link_label'));
+        if ($label === '') {
+            $label = 'Woher kommt diese Seite';
+        }
+        $text = trim($this->settings->get('about_text'));
+
+        if ($text !== '') {
+            return $this->view->render($response, 'public/about.twig', [
+                'page_title' => $label,
+                'body' => $text,
+                'missing' => false,
+            ]);
+        }
+
+        return $this->view->render($response->withStatus(404), 'public/about.twig', [
+            'page_title' => $label,
+            'body' => '',
+            'missing' => true,
+        ]);
+    }
+
     /** @return list<array<string, mixed>> */
     private function activeFachbereicheWithSchienen(): array
     {
