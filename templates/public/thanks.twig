@@ -6,7 +6,7 @@
     <header class="confirmation-header">
         {% if site_logo %}
             <div class="confirmation-logo">
-                <img src="/uploads/{{ site_logo }}" alt="{{ app_name }}" width="140" height="48">
+                <img src="/uploads/{{ site_logo }}" alt="{{ app_name }}">
             </div>
         {% endif %}
         <div class="confirmation-heading">
@@ -20,7 +20,7 @@
         <p class="confirmation-print-note print-only">Status: storniert</p>
     {% else %}
         <p class="confirmation-lead no-print">Ihre Anmeldung ist gespeichert. Eine Bestätigung wurde per E-Mail versendet.</p>
-        <p class="confirmation-lead print-only">Hiermit bestätigen wir Ihre Anmeldung zum {{ app_name }}.</p>
+        <p class="confirmation-lead print-only">Hiermit bestätigen wir Ihre Anmeldung.</p>
     {% endif %}
 
     <dl class="confirmation-details">

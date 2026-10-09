@@ -232,8 +232,8 @@ final class AnmeldungService
             return '';
         }
 
-        $maxWidth = 140;
-        $maxHeight = 48;
+        $maxWidth = 180;
+        $maxHeight = 72;
         $displayWidth = $maxWidth;
         $displayHeight = 0;
 

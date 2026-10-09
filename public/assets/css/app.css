@@ -447,32 +447,26 @@ body {
 }
 
 .confirmation-header {
-    display: flex;
-    flex-wrap: wrap;
-    align-items: center;
-    gap: 0.85rem 1.25rem;
     margin-bottom: 1rem;
     padding-bottom: 1rem;
     border-bottom: 1px solid var(--line);
 }
 
 .confirmation-logo {
-    flex: 0 0 auto;
+    margin: 0 0 0.75rem;
     line-height: 0;
 }
 
+/* Keine feste height/width – sonst verzerren Browser/Druck das Seitenverhältnis. */
 .confirmation-logo img {
     display: block;
     width: auto !important;
-    max-width: 8.5rem !important;
     height: auto !important;
-    max-height: 3rem !important;
-    object-fit: contain;
-    object-position: left center;
+    max-height: 3.25rem !important;
+    max-width: 11rem !important;
 }
 
 .confirmation-heading {
-    flex: 1 1 12rem;
     min-width: 0;
 }
 
@@ -591,8 +585,7 @@ body {
     }
 
     .confirmation-header {
-        align-items: flex-start;
-        gap: 1rem 1.5rem;
+        display: block !important;
         margin-bottom: 1.25rem;
         padding-bottom: 0.85rem;
         border-bottom: 2px solid #1a5c45 !important;
@@ -600,13 +593,19 @@ body {
 
     .confirmation-logo {
         display: block !important;
+        margin: 0 0 0.85rem !important;
+        width: auto !important;
+        max-width: none !important;
+        overflow: visible !important;
     }
 
     .confirmation-logo img {
-        max-width: 7rem !important;
-        max-height: 2.5rem !important;
+        display: block !important;
         width: auto !important;
         height: auto !important;
+        max-height: 52px !important;
+        max-width: 160px !important;
+        object-fit: initial !important;
         -webkit-print-color-adjust: exact;
         print-color-adjust: exact;
     }
