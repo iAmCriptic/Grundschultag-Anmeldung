@@ -92,6 +92,15 @@ return [
             $aboutHref = '';
             $aboutLinkLabel = 'Woher kommt diese Seite';
         }
+        $assetVersion = '1';
+        $versionFile = $c->get('root_path') . '/VERSION';
+        if (is_file($versionFile)) {
+            $v = trim((string) file_get_contents($versionFile));
+            if ($v !== '') {
+                $assetVersion = $v;
+            }
+        }
+        $twig->getEnvironment()->addGlobal('asset_version', $assetVersion);
         $twig->getEnvironment()->addGlobal('app_name', $appName);
         $twig->getEnvironment()->addGlobal('site_logo', $siteLogo);
         $twig->getEnvironment()->addGlobal('impressum_href', $impressumHref);

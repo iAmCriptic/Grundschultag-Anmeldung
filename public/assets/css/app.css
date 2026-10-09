@@ -439,11 +439,16 @@ body {
     max-width: 40rem;
 }
 
-.confirmation {
+.confirmation.card.app-card,
+.card.app-card.confirmation {
     background: var(--card);
-    border: 1px solid var(--line);
+    border: 1px solid var(--line) !important;
     border-radius: 0.75rem;
-    padding: 1.5rem 1.5rem 1.35rem;
+    box-shadow: none;
+}
+
+.confirmation-body {
+    padding: 1.5rem 1.5rem 1.35rem !important;
 }
 
 .confirmation-header {
@@ -455,15 +460,17 @@ body {
 .confirmation-logo {
     margin: 0 0 0.75rem;
     line-height: 0;
+    max-width: 10rem;
 }
 
 /* Keine feste height/width – sonst verzerren Browser/Druck das Seitenverhältnis. */
-.confirmation-logo img {
-    display: block;
+.confirmation-logo img,
+.page-confirmation .confirmation-logo img {
+    display: block !important;
     width: auto !important;
     height: auto !important;
-    max-height: 3.25rem !important;
-    max-width: 11rem !important;
+    max-height: 52px !important;
+    max-width: 160px !important;
 }
 
 .confirmation-heading {
@@ -576,12 +583,16 @@ body {
         margin: 0 !important;
     }
 
-    .confirmation {
+    .confirmation.card.app-card,
+    .card.app-card.confirmation {
         border: none !important;
         border-radius: 0 !important;
         background: transparent !important;
-        padding: 0 !important;
         box-shadow: none !important;
+    }
+
+    .confirmation-body {
+        padding: 0 !important;
     }
 
     .confirmation-header {
@@ -595,11 +606,12 @@ body {
         display: block !important;
         margin: 0 0 0.85rem !important;
         width: auto !important;
-        max-width: none !important;
+        max-width: 160px !important;
         overflow: visible !important;
     }
 
-    .confirmation-logo img {
+    .confirmation-logo img,
+    .page-confirmation .confirmation-logo img {
         display: block !important;
         width: auto !important;
         height: auto !important;

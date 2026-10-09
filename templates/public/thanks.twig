@@ -2,57 +2,60 @@
 {% block title %}Bestätigung · {{ app_name }}{% endblock %}
 {% block body_class %}page-confirmation{% endblock %}
 {% block content %}
-<article class="confirmation">
-    <header class="confirmation-header">
-        {% if site_logo %}
-            <div class="confirmation-logo">
-                <img src="/uploads/{{ site_logo }}" alt="{{ app_name }}">
+<article class="card app-card confirmation">
+    <div class="card-body confirmation-body">
+        <header class="confirmation-header">
+            {% if site_logo %}
+                <div class="confirmation-logo">
+                    <img src="/uploads/{{ site_logo }}"
+                         alt="{{ app_name }}"
+                         style="max-height:52px;max-width:160px;width:auto;height:auto;display:block;">
+                </div>
+            {% endif %}
+            <div class="confirmation-heading">
+                <p class="confirmation-kicker">Anmeldebestätigung</p>
+                <h1 class="confirmation-title">Danke für Ihre Anmeldung</h1>
             </div>
+        </header>
+
+        {% if anmeldung.status == 'storniert' %}
+            <div class="alert alert-warning no-print">Diese Anmeldung wurde storniert.</div>
+            <p class="confirmation-print-note print-only">Status: storniert</p>
+        {% else %}
+            <p class="confirmation-lead">Ihre Anmeldung ist gespeichert. Eine Bestätigung wurde per E-Mail versendet.</p>
         {% endif %}
-        <div class="confirmation-heading">
-            <p class="confirmation-kicker">Anmeldebestätigung</p>
-            <h1 class="confirmation-title">Danke für Ihre Anmeldung</h1>
-        </div>
-    </header>
 
-    {% if anmeldung.status == 'storniert' %}
-        <div class="alert alert-warning no-print">Diese Anmeldung wurde storniert.</div>
-        <p class="confirmation-print-note print-only">Status: storniert</p>
-    {% else %}
-        <p class="confirmation-lead no-print">Ihre Anmeldung ist gespeichert. Eine Bestätigung wurde per E-Mail versendet.</p>
-        <p class="confirmation-lead print-only">Hiermit bestätigen wir Ihre Anmeldung.</p>
-    {% endif %}
+        <dl class="confirmation-details">
+            <div class="confirmation-row">
+                <dt>Vor &amp; Nachname</dt>
+                <dd>{{ anmeldung.name }}</dd>
+            </div>
+            <div class="confirmation-row">
+                <dt>E-Mail</dt>
+                <dd>{{ anmeldung.email }}</dd>
+            </div>
+            <div class="confirmation-row">
+                <dt>Fachbereich</dt>
+                <dd>{{ anmeldung.fachbereich_name }}</dd>
+            </div>
+            <div class="confirmation-row">
+                <dt>Schiene</dt>
+                <dd>{{ anmeldung.schiene_name }}</dd>
+            </div>
+            <div class="confirmation-row">
+                <dt>Status</dt>
+                <dd>{{ anmeldung.status }}</dd>
+            </div>
+        </dl>
 
-    <dl class="confirmation-details">
-        <div class="confirmation-row">
-            <dt>Vor &amp; Nachname</dt>
-            <dd>{{ anmeldung.name }}</dd>
-        </div>
-        <div class="confirmation-row">
-            <dt>E-Mail</dt>
-            <dd>{{ anmeldung.email }}</dd>
-        </div>
-        <div class="confirmation-row">
-            <dt>Fachbereich</dt>
-            <dd>{{ anmeldung.fachbereich_name }}</dd>
-        </div>
-        <div class="confirmation-row">
-            <dt>Schiene</dt>
-            <dd>{{ anmeldung.schiene_name }}</dd>
-        </div>
-        <div class="confirmation-row">
-            <dt>Status</dt>
-            <dd>{{ anmeldung.status }}</dd>
-        </div>
-    </dl>
+        <footer class="confirmation-footer print-only">
+            <p>{{ app_name }}</p>
+        </footer>
 
-    <footer class="confirmation-footer print-only">
-        <p>{{ app_name }}</p>
-    </footer>
-
-    <div class="no-print confirmation-actions">
-        <button type="button" class="btn btn-primary" onclick="window.print()">Bestätigung drucken / speichern</button>
-        <a class="btn btn-outline-primary" href="/">Zur Startseite</a>
+        <div class="no-print confirmation-actions">
+            <button type="button" class="btn btn-primary" onclick="window.print()">Bestätigung drucken / speichern</button>
+            <a class="btn btn-outline-primary" href="/">Zur Startseite</a>
+        </div>
     </div>
 </article>
 {% endblock %}
