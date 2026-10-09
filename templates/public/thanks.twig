@@ -1,8 +1,14 @@
 {% extends 'layouts/base.twig' %}
 {% block title %}Bestätigung · {{ app_name }}{% endblock %}
+{% block body_class %}page-confirmation{% endblock %}
 {% block content %}
 <section class="card app-card">
     <div class="card-body p-4">
+        {% if site_logo %}
+            <div class="confirmation-logo">
+                <img src="/uploads/{{ site_logo }}" alt="{{ app_name }}">
+            </div>
+        {% endif %}
         <h1 class="h2 mb-3">Danke für Ihre Anmeldung</h1>
         {% if anmeldung.status == 'storniert' %}
             <div class="alert alert-warning">Diese Anmeldung wurde storniert.</div>

@@ -16,6 +16,7 @@ final class AnmeldungService
         private readonly PDO $pdo,
         private readonly SettingsService $settings,
         private readonly MailService $mail,
+        private readonly HtmlContentService $html,
         private readonly array $appSettings
     ) {
     }
@@ -168,7 +169,7 @@ final class AnmeldungService
             (string) ($this->appSettings['mail']['from_name'] ?? 'Grundschultag')
         );
 
-        $placeholders = [
+        $rawPlaceholders = [
             '{name}' => (string) $anmeldung['name'],
             '{email}' => (string) $anmeldung['email'],
             '{fachbereich}' => (string) $anmeldung['fachbereich_name'],
@@ -176,7 +177,14 @@ final class AnmeldungService
             '{cancel_url}' => $cancelUrl,
             '{thanks_url}' => $thanksUrl,
             '{from_name}' => $fromName,
+            '{logo}' => '',
         ];
+        $htmlPlaceholders = [];
+        foreach ($rawPlaceholders as $key => $value) {
+            $htmlPlaceholders[$key] = htmlspecialchars($value, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
+        }
+        // Nach Sanitize als HTML ersetzen, damit <img> nicht herausgefiltert wird.
+        $htmlPlaceholders['{logo}'] = $this->logoImgHtml($baseUrl, $fromName);
 
         $subjectTemplate = $this->settings->get(
             'mail_subject',
@@ -187,28 +195,48 @@ final class AnmeldungService
             $bodyTemplate = self::defaultMailBody();
         }
 
-        $subject = strtr($subjectTemplate, $placeholders);
-        $body = strtr($bodyTemplate, $placeholders);
+        $subject = strtr($subjectTemplate, $rawPlaceholders);
+        $bodyHtml = strtr($this->html->toSafeHtml($bodyTemplate), $htmlPlaceholders);
 
         if ($from !== '') {
-            $this->mail->send((string) $anmeldung['email'], $subject, $body, $from, $fromName);
+            $this->mail->send((string) $anmeldung['email'], $subject, $bodyHtml, $from, $fromName, true);
         }
     }
 
     public static function defaultMailBody(): string
     {
-        return "Hallo {name},\n\n"
-            . "vielen Dank für Ihre Anmeldung.\n\n"
-            . "Ihre Anmeldung:\n"
-            . "Fachbereich: {fachbereich}\n"
-            . "Schiene: {schiene}\n"
-            . "Name: {name}\n\n"
-            . "Sollten Sie den Termin nicht wahrnehmen können, nutzen Sie bitte folgenden Link, um Ihre Anmeldung zu stornieren:\n"
-            . "{cancel_url}\n\n"
-            . "Mit freundlichen Grüßen\n"
-            . "Das Team der {from_name}\n\n"
-            . "Webansicht Ihrer Anmeldung:\n"
-            . "{thanks_url}\n";
+        return '<p>{logo}</p>'
+            . '<p>Hallo {name},</p>'
+            . '<p>vielen Dank für Ihre Anmeldung.</p>'
+            . '<p><strong>Ihre Anmeldung:</strong><br>'
+            . 'Fachbereich: {fachbereich}<br>'
+            . 'Schiene: {schiene}<br>'
+            . 'Name: {name}</p>'
+            . '<p>Sollten Sie den Termin nicht wahrnehmen können, nutzen Sie bitte folgenden Link, '
+            . 'um Ihre Anmeldung zu stornieren:<br>'
+            . '<a href="{cancel_url}">{cancel_url}</a></p>'
+            . '<p>Mit freundlichen Grüßen<br>Das Team der {from_name}</p>'
+            . '<p>Webansicht Ihrer Anmeldung:<br>'
+            . '<a href="{thanks_url}">{thanks_url}</a></p>';
+    }
+
+    private function logoImgHtml(string $baseUrl, string $alt): string
+    {
+        $logo = trim($this->settings->get('site_logo'));
+        if ($logo === '' || $baseUrl === '') {
+            return '';
+        }
+
+        $filename = basename(str_replace('\\', '/', $logo));
+        if ($filename === '' || $filename === '.' || $filename === '..') {
+            return '';
+        }
+
+        $src = $baseUrl . '/uploads/' . rawurlencode($filename);
+        return '<img src="' . htmlspecialchars($src, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8') . '"'
+            . ' alt="' . htmlspecialchars($alt, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8') . '"'
+            . ' width="220" height="80"'
+            . ' style="max-height:80px;max-width:220px;width:auto;height:auto;display:block;border:0;" />';
     }
 
     private function guessBaseUrl(): string

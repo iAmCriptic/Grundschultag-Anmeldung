@@ -434,7 +434,34 @@ body {
     flex-shrink: 0;
 }
 
+.confirmation-logo {
+    margin-bottom: 1.25rem;
+}
+
+.confirmation-logo img {
+    display: block;
+    height: auto;
+    max-height: 5rem;
+    max-width: 14rem;
+    object-fit: contain;
+    object-position: left center;
+}
+
 @media print {
-    .site-logo, .site-header, .site-footer, .no-print { display: none !important; }
+    .site-header, .site-footer, .no-print { display: none !important; }
     body { background: #fff; color: #000; }
+    .page-confirmation .app-card {
+        border: none !important;
+        box-shadow: none !important;
+    }
+    .confirmation-logo {
+        display: block !important;
+        margin-bottom: 1rem;
+    }
+    .confirmation-logo img {
+        max-height: 4rem;
+        max-width: 12rem;
+        -webkit-print-color-adjust: exact;
+        print-color-adjust: exact;
+    }
 }

@@ -131,10 +131,6 @@ final class SettingsController
                 throw new \RuntimeException('Der Linkname darf höchstens 80 Zeichen lang sein.');
             }
 
-            $mailBody = (string) ($data['mail_body'] ?? '');
-            // Normalize Windows newlines for plain-text mail templates
-            $mailBody = str_replace("\r\n", "\n", $mailBody);
-
             $this->settings->setMany([
                 'site_title' => $siteTitle,
                 'welcome_text' => $this->html->sanitize((string) ($data['welcome_text'] ?? '')),
@@ -145,7 +141,7 @@ final class SettingsController
                 'mail_from' => trim((string) ($data['mail_from'] ?? '')),
                 'mail_from_name' => trim((string) ($data['mail_from_name'] ?? '')),
                 'mail_subject' => trim((string) ($data['mail_subject'] ?? '')),
-                'mail_body' => $mailBody,
+                'mail_body' => $this->html->sanitize((string) ($data['mail_body'] ?? '')),
                 'impressum_url' => $this->settings->normalizeLegalUrl($impressumUrl),
                 'impressum_text' => $this->html->sanitize((string) ($data['impressum_text'] ?? '')),
                 'datenschutz_url' => $this->settings->normalizeLegalUrl($datenschutzUrl),
@@ -266,11 +262,8 @@ final class SettingsController
 
         $data = (array) $request->getParsedBody();
         try {
-            $this->updater->savePreferences(
-                trim((string) ($data['update_repo_url'] ?? '')),
-                trim((string) ($data['update_ref'] ?? UpdateService::DEFAULT_REF))
-            );
-            $_SESSION['flash'] = 'Update-Quelle gespeichert. Beim nächsten Admin-Login wird automatisch auf Updates geprüft.';
+            $this->persistUpdateSource($data);
+            $_SESSION['flash'] = 'Update-Quelle gespeichert. Prüfung und Aktualisierung nutzen diese Quelle dauerhaft.';
         } catch (\Throwable $e) {
             $_SESSION['flash_error'] = $e->getMessage();
         }
@@ -287,10 +280,9 @@ final class SettingsController
             return $denied;
         }
 
+        $data = (array) $request->getParsedBody();
         try {
-            if (!$this->updater->isConfigured()) {
-                throw new RuntimeException('Bitte zuerst die Update-Quelle speichern.');
-            }
+            $this->persistUpdateSource($data, true);
             $result = $this->updater->checkForUpdate(true);
             if ($result === null) {
                 throw new RuntimeException('Remote-Version konnte nicht gelesen werden. URL und Branch/Tag prüfen.');
@@ -318,15 +310,8 @@ final class SettingsController
         }
 
         $data = (array) $request->getParsedBody();
-        $confirm = trim((string) ($data['confirm'] ?? ''));
-        if ($confirm !== 'UPDATE') {
-            $_SESSION['flash_error'] = 'Bitte zur Bestätigung genau UPDATE eingeben.';
-            return $response
-                ->withHeader('Location', '/administrator/einstellungen?tab=update')
-                ->withStatus(302);
-        }
-
         try {
+            $this->persistUpdateSource($data, true);
             @set_time_limit(300);
             $result = $this->updater->applyConfigured();
             $_SESSION['flash'] = $result['message'];
@@ -338,6 +323,32 @@ final class SettingsController
         return $response
             ->withHeader('Location', '/administrator/einstellungen?tab=update')
             ->withStatus(302);
+    }
+
+    /**
+     * Speichert die Update-Quelle aus dem Formular dauerhaft in den Settings.
+     * Wenn keine URL im Request steht und $allowSaved true ist, bleibt die gespeicherte Quelle.
+     *
+     * @param array<string, mixed> $data
+     */
+    private function persistUpdateSource(array $data, bool $allowSaved = false): void
+    {
+        $repo = trim((string) ($data['update_repo_url'] ?? ''));
+        $ref = trim((string) ($data['update_ref'] ?? ''));
+
+        if ($repo !== '') {
+            $this->updater->savePreferences(
+                $repo,
+                $ref !== '' ? $ref : UpdateService::DEFAULT_REF
+            );
+            return;
+        }
+
+        if ($allowSaved && $this->updater->isConfigured()) {
+            return;
+        }
+
+        throw new RuntimeException('Bitte eine GitHub-Repository-URL als Update-Quelle angeben.');
     }
 
     private function requireFullAdmin(Response $response): ?Response

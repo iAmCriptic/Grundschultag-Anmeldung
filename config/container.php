@@ -133,6 +133,7 @@ return [
             $c->get(PDO::class),
             $c->get(SettingsService::class),
             $c->get(MailService::class),
+            $c->get(HtmlContentService::class),
             $c->get('settings')
         );
     },

@@ -243,9 +243,19 @@ final class UpdateService
         if ($this->looksLikeDirectZipUrl($repoUrl)) {
             throw new RuntimeException('Bitte eine GitHub-Repository-URL speichern, keinen direkten ZIP-Link.');
         }
+        $normalizedUrl = $this->normalizeRepoUrl($repoUrl);
+        $normalizedRef = $this->normalizeRef($ref);
+
+        $unchanged = $normalizedUrl === $this->configuredRepoUrl()
+            && $normalizedRef === $this->configuredRef();
+        if ($unchanged) {
+            // Bereits dauerhaft gespeichert – Cache nicht unnötig leeren.
+            return;
+        }
+
         $this->settings->setMany([
-            'update_repo_url' => $this->normalizeRepoUrl($repoUrl),
-            'update_ref' => $this->normalizeRef($ref),
+            'update_repo_url' => $normalizedUrl,
+            'update_ref' => $normalizedRef,
             // Quelle geändert → Cache leeren
             'update_check_at' => '',
             'update_remote_version' => '',

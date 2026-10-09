@@ -122,9 +122,11 @@
                         </div>
                         <div class="mb-0">
                             <label class="form-label" for="mail_body">Mail-Text</label>
-                            <textarea class="form-control font-monospace" name="mail_body" id="mail_body" rows="14" spellcheck="true">{{ settings.mail_body|default(mail_body_default, true) }}</textarea>
+                            <textarea class="form-control rich-editor" name="mail_body" id="mail_body" rows="14">{{ settings.mail_body|default(mail_body_default, true) }}</textarea>
                             <div class="form-text mt-2">
-                                Verfügbare Platzhalter:
+                                Formatierung wie auf der Website. Platzhalter:
+                                <code>{logo}</code>
+                                (Logo aus Darstellung),
                                 <code>{name}</code>,
                                 <code>{email}</code>,
                                 <code>{fachbereich}</code>,
@@ -132,6 +134,8 @@
                                 <code>{cancel_url}</code>,
                                 <code>{thanks_url}</code>,
                                 <code>{from_name}</code>
+                                — <code>{logo}</code> an die gewünschte Stelle im Text setzen;
+                                für Links z.&nbsp;B. URL <code>{cancel_url}</code> einfügen.
                             </div>
                         </div>
                     </div>
@@ -269,7 +273,7 @@
             {# —— Update —— #}
             <div class="settings-panel{% if tab == 'update' %} is-active{% endif %}" data-panel="update">
                 <h2 class="settings-panel-title">Update</h2>
-                <p class="settings-panel-lead">GitHub-Quelle einmal hinterlegen. Danach wird beim Admin-Login automatisch auf Updates hingewiesen.</p>
+                <p class="settings-panel-lead">Quelle einmal eintragen – sie wird dauerhaft gespeichert. Prüfen und Aktualisieren speichern die Quelle automatisch mit.</p>
 
                 {% set u = update_status|default({
                     repo_url: settings.update_repo_url|default(''),
@@ -280,17 +284,22 @@
                     configured: false,
                     check_at: ''
                 }) %}
+                {% set update_repo_value = u.repo_url|default(settings.update_repo_url|default(''), true) %}
+                {% if update_repo_value == '' %}
+                    {% set update_repo_value = 'https://github.com/iAmCriptic/Grundschultag-Anmeldung' %}
+                {% endif %}
 
-                <div class="settings-block">
-                    <h3 class="settings-block-title">Update-Quelle</h3>
-                    <p class="text-muted small mb-3">Wird dauerhaft gespeichert und für Prüfung sowie Update verwendet.</p>
-                    <form method="post" action="/administrator/einstellungen/update-quelle">
-                        {{ csrf.field()|raw }}
+                <form method="post" action="/administrator/einstellungen/update-quelle" id="update-source-form">
+                    {{ csrf.field()|raw }}
+
+                    <div class="settings-block">
+                        <h3 class="settings-block-title">Update-Quelle</h3>
+                        <p class="text-muted small mb-3">Wird in den Einstellungen gespeichert und beim nächsten Besuch wiederverwendet.</p>
                         <div class="mb-3">
                             <label class="form-label" for="update_repo_url">GitHub-Repository</label>
                             <input class="form-control" type="url" name="update_repo_url" id="update_repo_url" required
                                    placeholder="https://github.com/iAmCriptic/Grundschultag-Anmeldung"
-                                   value="{{ u.repo_url }}">
+                                   value="{{ update_repo_value }}">
                             <div class="form-text">Öffentliches Repo, z.&nbsp;B. <code>https://github.com/iAmCriptic/Grundschultag-Anmeldung</code></div>
                         </div>
                         <div class="mb-3">
@@ -298,71 +307,64 @@
                             <input class="form-control" type="text" name="update_ref" id="update_ref" required
                                    placeholder="main" value="{{ u.ref|default('main') }}" maxlength="100" pattern="[A-Za-z0-9._/\-]+">
                         </div>
-                        <button type="submit" class="btn btn-primary">Quelle speichern</button>
-                    </form>
-                </div>
+                        <button type="submit" class="btn btn-outline-secondary">Nur Quelle speichern</button>
+                    </div>
 
-                <div class="settings-block">
-                    <h3 class="settings-block-title">Status</h3>
-                    {% if not u.configured %}
-                        <p class="mb-0 text-muted">Noch keine Quelle gespeichert.</p>
-                    {% else %}
-                        <dl class="row mb-0">
-                            <dt class="col-sm-4">Gespeicherte Quelle</dt>
-                            <dd class="col-sm-8"><code>{{ u.repo_url }}</code> @ <code>{{ u.ref }}</code></dd>
-                            <dt class="col-sm-4">Installierte Version</dt>
-                            <dd class="col-sm-8"><code>{{ u.current }}</code></dd>
-                            <dt class="col-sm-4">Remote-Version</dt>
-                            <dd class="col-sm-8">
-                                {% if u.remote %}
-                                    <code>{{ u.remote }}</code>
-                                    {% if u.up_to_date %}
-                                        <span class="text-success ms-2">aktuell</span>
+                    <div class="settings-block">
+                        <h3 class="settings-block-title">Status</h3>
+                        {% if not u.configured %}
+                            <p class="mb-0 text-muted">Noch nicht geprüft – Quelle wird beim ersten Prüfen oder Aktualisieren gespeichert.</p>
+                        {% else %}
+                            <dl class="row mb-0">
+                                <dt class="col-sm-4">Gespeicherte Quelle</dt>
+                                <dd class="col-sm-8"><code>{{ u.repo_url }}</code> @ <code>{{ u.ref }}</code></dd>
+                                <dt class="col-sm-4">Installierte Version</dt>
+                                <dd class="col-sm-8"><code>{{ u.current }}</code></dd>
+                                <dt class="col-sm-4">Remote-Version</dt>
+                                <dd class="col-sm-8">
+                                    {% if u.remote %}
+                                        <code>{{ u.remote }}</code>
+                                        {% if u.up_to_date %}
+                                            <span class="text-success ms-2">aktuell</span>
+                                        {% else %}
+                                            <span class="text-warning ms-2">Update verfügbar</span>
+                                        {% endif %}
                                     {% else %}
-                                        <span class="text-warning ms-2">Update verfügbar</span>
+                                        <span class="text-muted">noch nicht geprüft</span>
                                     {% endif %}
-                                {% else %}
-                                    <span class="text-muted">noch nicht geprüft</span>
+                                </dd>
+                                {% if u.check_at %}
+                                    <dt class="col-sm-4">Letzte Prüfung</dt>
+                                    <dd class="col-sm-8">{{ u.check_at }}</dd>
                                 {% endif %}
-                            </dd>
-                            {% if u.check_at %}
-                                <dt class="col-sm-4">Letzte Prüfung</dt>
-                                <dd class="col-sm-8">{{ u.check_at }}</dd>
-                            {% endif %}
-                            {% if settings.update_last_at|default('') %}
-                                <dt class="col-sm-4">Letztes Update</dt>
-                                <dd class="col-sm-8">{{ settings.update_last_at }}{% if settings.update_last_version|default('') %} ({{ settings.update_last_version }}){% endif %}</dd>
-                            {% endif %}
-                        </dl>
-                    {% endif %}
-                </div>
+                                {% if settings.update_last_at|default('') %}
+                                    <dt class="col-sm-4">Letztes Update</dt>
+                                    <dd class="col-sm-8">{{ settings.update_last_at }}{% if settings.update_last_version|default('') %} ({{ settings.update_last_version }}){% endif %}</dd>
+                                {% endif %}
+                            </dl>
+                        {% endif %}
+                    </div>
 
-                <div class="settings-block">
-                    <h3 class="settings-block-title">Aktualisieren</h3>
-                    <p class="text-muted small mb-3">
-                        Nutzt die gespeicherte Quelle. Erhalten bleiben: <code>.env</code>, <code>vendor/</code>, <code>public/uploads/</code> und <code>storage/</code>.
-                        Neue Composer-Abhängigkeiten müssen ggf. manuell in <code>vendor/</code> nachgezogen werden.
-                    </p>
-                    {% if not u.configured %}
-                        <p class="mb-0 text-muted">Zuerst die Update-Quelle speichern.</p>
-                    {% else %}
-                        <div class="d-flex flex-wrap gap-2 mb-3">
-                            <form method="post" action="/administrator/einstellungen/update-check" class="d-inline">
-                                {{ csrf.field()|raw }}
-                                <button type="submit" class="btn btn-outline-primary">Jetzt prüfen</button>
-                            </form>
+                    <div class="settings-block">
+                        <h3 class="settings-block-title">Aktualisieren</h3>
+                        <p class="text-muted small mb-3">
+                            Speichert die Quelle oben und nutzt sie für Prüfung bzw. Update.
+                            Erhalten bleiben: <code>.env</code>, <code>vendor/</code>, <code>public/uploads/</code> und <code>storage/</code>.
+                        </p>
+                        <div class="d-flex flex-wrap gap-2">
+                            <button type="submit" class="btn btn-outline-primary"
+                                    formaction="/administrator/einstellungen/update-check">
+                                Jetzt prüfen
+                            </button>
+                            <button type="submit" class="btn btn-primary"
+                                    formaction="/administrator/einstellungen/update"
+                                    formmethod="post"
+                                    onclick="return confirm('System jetzt aus dem GitHub-Repository aktualisieren?');">
+                                Jetzt aktualisieren
+                            </button>
                         </div>
-                        <form method="post" action="/administrator/einstellungen/update"
-                              onsubmit="return confirm('System jetzt aus dem gespeicherten GitHub-Repository aktualisieren?');">
-                            {{ csrf.field()|raw }}
-                            <div class="mb-3">
-                                <label class="form-label" for="update_confirm">Zur Bestätigung <code>UPDATE</code> eingeben</label>
-                                <input class="form-control" type="text" name="confirm" id="update_confirm" autocomplete="off" required placeholder="UPDATE">
-                            </div>
-                            <button type="submit" class="btn btn-primary">Jetzt aktualisieren</button>
-                        </form>
-                    {% endif %}
-                </div>
+                    </div>
+                </form>
             </div>
 
             {# —— Daten —— #}
