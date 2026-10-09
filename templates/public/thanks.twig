@@ -2,32 +2,57 @@
 {% block title %}Bestätigung · {{ app_name }}{% endblock %}
 {% block body_class %}page-confirmation{% endblock %}
 {% block content %}
-<section class="card app-card">
-    <div class="card-body p-4">
+<article class="confirmation">
+    <header class="confirmation-header">
         {% if site_logo %}
             <div class="confirmation-logo">
-                <img src="/uploads/{{ site_logo }}" alt="{{ app_name }}">
+                <img src="/uploads/{{ site_logo }}" alt="{{ app_name }}" width="140" height="48">
             </div>
         {% endif %}
-        <h1 class="h2 mb-3">Danke für Ihre Anmeldung</h1>
-        {% if anmeldung.status == 'storniert' %}
-            <div class="alert alert-warning">Diese Anmeldung wurde storniert.</div>
-        {% else %}
-            <p>Ihre Anmeldung ist gespeichert. Eine Bestätigung wurde per E-Mail versendet.</p>
-        {% endif %}
-
-        <dl class="detail-list mb-4">
-            <dt>Vor &amp; Nachname</dt><dd>{{ anmeldung.name }}</dd>
-            <dt>E-Mail</dt><dd>{{ anmeldung.email }}</dd>
-            <dt>Fachbereich</dt><dd>{{ anmeldung.fachbereich_name }}</dd>
-            <dt>Schiene</dt><dd>{{ anmeldung.schiene_name }}</dd>
-            <dt>Status</dt><dd>{{ anmeldung.status }}</dd>
-        </dl>
-
-        <div class="no-print d-flex flex-wrap gap-2">
-            <button type="button" class="btn btn-primary" onclick="window.print()">Bestätigung drucken / speichern</button>
-            <a class="btn btn-outline-primary" href="/">Zur Startseite</a>
+        <div class="confirmation-heading">
+            <p class="confirmation-kicker">Anmeldebestätigung</p>
+            <h1 class="confirmation-title">Danke für Ihre Anmeldung</h1>
         </div>
+    </header>
+
+    {% if anmeldung.status == 'storniert' %}
+        <div class="alert alert-warning no-print">Diese Anmeldung wurde storniert.</div>
+        <p class="confirmation-print-note print-only">Status: storniert</p>
+    {% else %}
+        <p class="confirmation-lead no-print">Ihre Anmeldung ist gespeichert. Eine Bestätigung wurde per E-Mail versendet.</p>
+        <p class="confirmation-lead print-only">Hiermit bestätigen wir Ihre Anmeldung zum {{ app_name }}.</p>
+    {% endif %}
+
+    <dl class="confirmation-details">
+        <div class="confirmation-row">
+            <dt>Vor &amp; Nachname</dt>
+            <dd>{{ anmeldung.name }}</dd>
+        </div>
+        <div class="confirmation-row">
+            <dt>E-Mail</dt>
+            <dd>{{ anmeldung.email }}</dd>
+        </div>
+        <div class="confirmation-row">
+            <dt>Fachbereich</dt>
+            <dd>{{ anmeldung.fachbereich_name }}</dd>
+        </div>
+        <div class="confirmation-row">
+            <dt>Schiene</dt>
+            <dd>{{ anmeldung.schiene_name }}</dd>
+        </div>
+        <div class="confirmation-row">
+            <dt>Status</dt>
+            <dd>{{ anmeldung.status }}</dd>
+        </div>
+    </dl>
+
+    <footer class="confirmation-footer print-only">
+        <p>{{ app_name }}</p>
+    </footer>
+
+    <div class="no-print confirmation-actions">
+        <button type="button" class="btn btn-primary" onclick="window.print()">Bestätigung drucken / speichern</button>
+        <a class="btn btn-outline-primary" href="/">Zur Startseite</a>
     </div>
-</section>
+</article>
 {% endblock %}

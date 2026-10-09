@@ -232,11 +232,33 @@ final class AnmeldungService
             return '';
         }
 
+        $maxWidth = 140;
+        $maxHeight = 48;
+        $displayWidth = $maxWidth;
+        $displayHeight = 0;
+
+        $path = dirname(__DIR__, 2) . '/public/uploads/' . $filename;
+        if (is_file($path)) {
+            $size = @getimagesize($path);
+            if (is_array($size) && ($size[0] ?? 0) > 0 && ($size[1] ?? 0) > 0) {
+                $scale = min($maxWidth / $size[0], $maxHeight / $size[1], 1.0);
+                $displayWidth = (int) max(1, round($size[0] * $scale));
+                $displayHeight = (int) max(1, round($size[1] * $scale));
+            }
+        }
+
         $src = $baseUrl . '/uploads/' . rawurlencode($filename);
-        return '<img src="' . htmlspecialchars($src, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8') . '"'
+        $attrs = ' src="' . htmlspecialchars($src, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8') . '"'
             . ' alt="' . htmlspecialchars($alt, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8') . '"'
-            . ' width="220" height="80"'
-            . ' style="max-height:80px;max-width:220px;width:auto;height:auto;display:block;border:0;" />';
+            . ' width="' . $displayWidth . '"';
+        if ($displayHeight > 0) {
+            $attrs .= ' height="' . $displayHeight . '"';
+        }
+
+        // Seitenverhältnis beibehalten: echte Maße setzen, height:auto als Fallback.
+        return '<img' . $attrs
+            . ' style="display:block;border:0;outline:none;width:' . $displayWidth . 'px;'
+            . 'max-width:' . $maxWidth . 'px;height:auto;max-height:' . $maxHeight . 'px;" />';
     }
 
     private function guessBaseUrl(): string
