@@ -13,6 +13,7 @@ use App\Controllers\SetupController;
 use App\Middleware\AdminAuthMiddleware;
 use App\Services\AnmeldungService;
 use App\Services\AuthService;
+use App\Services\BotProtectionService;
 use App\Services\CsrfService;
 use App\Services\ExportService;
 use App\Services\FachbereichService;
@@ -68,10 +69,15 @@ return [
         $appName = (string) ($c->get('settings')['app_name'] ?? 'Grundschultag Anmeldung');
         $twig->getEnvironment()->addGlobal('csrf', $c->get(CsrfService::class));
         $siteLogo = '';
+        $siteSubtitle = '';
         $impressumHref = '';
         $datenschutzHref = '';
         $aboutHref = '';
         $aboutLinkLabel = 'Woher kommt diese Seite';
+        $homepageButtonHref = '';
+        $homepageButtonLabel = 'Zur Homepage';
+        $publicThemeToggle = false;
+        $googleIndexing = false;
         try {
             $db = $c->get('settings')['db'] ?? [];
             if (($db['name'] ?? '') !== '' && is_file($c->get('root_path') . '/.env')) {
@@ -80,6 +86,7 @@ return [
                 if ($savedTitle !== '') {
                     $appName = $savedTitle;
                 }
+                $siteSubtitle = trim($settingsService->get('site_subtitle'));
                 $siteLogo = $settingsService->get('site_logo');
                 $impressumHref = $settingsService->legalHref('impressum_url', 'impressum_text', '/impressum');
                 $datenschutzHref = $settingsService->legalHref('datenschutz_url', 'datenschutz_text', '/datenschutz');
@@ -90,13 +97,24 @@ return [
                 if (trim($settingsService->get('about_text')) !== '') {
                     $aboutHref = '/woher';
                 }
+                $homepageButtonLabel = $settingsService->homepageButtonLabel();
+                if ($settingsService->homepageButtonEnabled()) {
+                    $homepageButtonHref = $settingsService->homepageButtonUrl();
+                }
+                $publicThemeToggle = $settingsService->publicThemeToggleEnabled();
+                $googleIndexing = $settingsService->googleIndexingEnabled();
             }
         } catch (Throwable) {
             $siteLogo = '';
+            $siteSubtitle = '';
             $impressumHref = '';
             $datenschutzHref = '';
             $aboutHref = '';
             $aboutLinkLabel = 'Woher kommt diese Seite';
+            $homepageButtonHref = '';
+            $homepageButtonLabel = 'Zur Homepage';
+            $publicThemeToggle = false;
+            $googleIndexing = false;
         }
         $assetVersion = '1';
         $versionFile = $c->get('root_path') . '/VERSION';
@@ -108,11 +126,16 @@ return [
         }
         $twig->getEnvironment()->addGlobal('asset_version', $assetVersion);
         $twig->getEnvironment()->addGlobal('app_name', $appName);
+        $twig->getEnvironment()->addGlobal('site_subtitle', $siteSubtitle);
         $twig->getEnvironment()->addGlobal('site_logo', $siteLogo);
         $twig->getEnvironment()->addGlobal('impressum_href', $impressumHref);
         $twig->getEnvironment()->addGlobal('datenschutz_href', $datenschutzHref);
         $twig->getEnvironment()->addGlobal('about_href', $aboutHref);
         $twig->getEnvironment()->addGlobal('about_link_label', $aboutLinkLabel);
+        $twig->getEnvironment()->addGlobal('homepage_button_href', $homepageButtonHref);
+        $twig->getEnvironment()->addGlobal('homepage_button_label', $homepageButtonLabel);
+        $twig->getEnvironment()->addGlobal('public_theme_toggle', $publicThemeToggle);
+        $twig->getEnvironment()->addGlobal('google_indexing', $googleIndexing);
         $twig->getEnvironment()->addGlobal(
             'impressum_external',
             $impressumHref !== '' && preg_match('#^https?://#i', $impressumHref) === 1
@@ -137,6 +160,9 @@ return [
     InstallerService::class => static fn (ContainerInterface $c) => new InstallerService($c->get('root_path')),
     MailService::class => static fn (ContainerInterface $c) => new MailService($c->get('settings')),
     SettingsService::class => static fn (ContainerInterface $c) => new SettingsService($c->get(PDO::class)),
+    BotProtectionService::class => static fn (ContainerInterface $c) => new BotProtectionService(
+        $c->get(SettingsService::class)
+    ),
     UpdateService::class => static fn (ContainerInterface $c) => new UpdateService(
         $c->get('root_path'),
         $c->get(SettingsService::class)
@@ -174,7 +200,8 @@ return [
             $c->get(FachbereichService::class),
             $c->get(AnmeldungService::class),
             $c->get(CsrfService::class),
-            $c->get(AuthService::class)
+            $c->get(AuthService::class),
+            $c->get(BotProtectionService::class)
         );
     },
     LoginThrottleService::class => static function (ContainerInterface $c) {

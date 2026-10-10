@@ -1,6 +1,8 @@
 {% extends 'layouts/base.twig' %}
 {% block title %}Fachbereich wählen · {{ app_name }}{% endblock %}
 {% block content %}
+{% set capacity_mode = capacity_display|default('free_numbers') %}
+{% set full_mode = full_item_behavior|default('open') %}
 <section class="card app-card">
     <div class="card-body p-4">
         <h1 class="h2 mb-2">Fachbereich wählen</h1>
@@ -20,34 +22,62 @@
         {% else %}
             <ul class="fb-pick-list">
                 {% for fb in fachbereiche %}
+                    {% set is_full = fb.frei_total <= 0 %}
+                    {% set is_grayed = is_full and full_mode == 'gray' %}
+                    {% set meta = '' %}
+                    {% if is_full %}
+                        {% set meta = 'Ausgebucht' %}
+                    {% elseif capacity_mode == 'free_numbers' %}
+                        {% set meta = fb.frei_total ~ ' von ' ~ fb.kap_total ~ ' Plätzen frei' %}
+                    {% elseif capacity_mode == 'free_schienen' %}
+                        {% set meta = fb.schienen_free ~ ' von ' ~ fb.schienen_total ~ ' Schienen frei' %}
+                    {% endif %}
                     <li>
-                        <a class="fb-pick-item{% if fb.frei_total <= 0 %} is-full{% endif %}" href="/anmelden/{{ fb.id }}">
-                            <div class="fb-pick-media">
-                                {% if fb.teaser_bild %}
-                                    <img src="/uploads/{{ fb.teaser_bild }}" alt="">
-                                {% else %}
-                                    <span class="fb-pick-placeholder" aria-hidden="true">{{ fb.name|slice(0, 1)|upper }}</span>
-                                {% endif %}
-                            </div>
-                            <div class="fb-pick-body">
-                                <h2 class="fb-pick-title">{{ fb.name }}</h2>
-                                {% if fb.teaser_text %}
-                                    <p class="fb-pick-excerpt">{{ fb.teaser_text|striptags|trim|slice(0, 140) }}{% if fb.teaser_text|striptags|trim|length > 140 %}…{% endif %}</p>
-                                {% endif %}
-                                <p class="fb-pick-meta">
-                                    {% if fb.frei_total <= 0 %}
-                                        Ausgebucht
+                        {% if is_grayed %}
+                            <div class="fb-pick-item is-full is-disabled" aria-disabled="true">
+                                <div class="fb-pick-media">
+                                    {% if fb.teaser_bild %}
+                                        <img src="/uploads/{{ fb.teaser_bild }}" alt="">
                                     {% else %}
-                                        {{ fb.frei_total }} von {{ fb.kap_total }} Plätzen frei
+                                        <span class="fb-pick-placeholder" aria-hidden="true">{{ fb.name|slice(0, 1)|upper }}</span>
                                     {% endif %}
-                                </p>
+                                </div>
+                                <div class="fb-pick-body">
+                                    <h2 class="fb-pick-title">{{ fb.name }}</h2>
+                                    {% if fb.teaser_text %}
+                                        <p class="fb-pick-excerpt">{{ fb.teaser_text|striptags|trim|slice(0, 140) }}{% if fb.teaser_text|striptags|trim|length > 140 %}…{% endif %}</p>
+                                    {% endif %}
+                                    {% if meta %}
+                                        <p class="fb-pick-meta">{{ meta }}</p>
+                                    {% endif %}
+                                </div>
+                                <span class="fb-pick-arrow" aria-hidden="true">—</span>
                             </div>
-                            <span class="fb-pick-arrow" aria-hidden="true">→</span>
-                        </a>
+                        {% else %}
+                            <a class="fb-pick-item{% if is_full %} is-full{% endif %}" href="/anmelden/{{ fb.id }}">
+                                <div class="fb-pick-media">
+                                    {% if fb.teaser_bild %}
+                                        <img src="/uploads/{{ fb.teaser_bild }}" alt="">
+                                    {% else %}
+                                        <span class="fb-pick-placeholder" aria-hidden="true">{{ fb.name|slice(0, 1)|upper }}</span>
+                                    {% endif %}
+                                </div>
+                                <div class="fb-pick-body">
+                                    <h2 class="fb-pick-title">{{ fb.name }}</h2>
+                                    {% if fb.teaser_text %}
+                                        <p class="fb-pick-excerpt">{{ fb.teaser_text|striptags|trim|slice(0, 140) }}{% if fb.teaser_text|striptags|trim|length > 140 %}…{% endif %}</p>
+                                    {% endif %}
+                                    {% if meta %}
+                                        <p class="fb-pick-meta">{{ meta }}</p>
+                                    {% endif %}
+                                </div>
+                                <span class="fb-pick-arrow" aria-hidden="true">→</span>
+                            </a>
+                        {% endif %}
                     </li>
                 {% endfor %}
             </ul>
-            <p class="mt-4 mb-0"><a href="/">Abbrechen</a></p>
+            <p class="mt-4 mb-0"><a class="btn btn-outline-primary" href="/">Abbrechen</a></p>
         {% endif %}
     </div>
 </section>

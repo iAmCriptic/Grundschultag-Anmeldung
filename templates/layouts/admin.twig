@@ -3,6 +3,7 @@
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="robots" content="noindex, nofollow">
     <script>
     (function () {
         try {
@@ -119,12 +120,30 @@
                             <a class="admin-nav-sublink{% if on_settings and settings_tab == 'benutzer' %} is-active{% endif %}" href="/administrator/einstellungen?tab=benutzer">
                                 Benutzer
                             </a>
-                            <a class="admin-nav-sublink{% if on_settings and settings_tab == 'update' %} is-active{% endif %}" href="/administrator/einstellungen?tab=update">
-                                Update
-                            </a>
-                            <a class="admin-nav-sublink admin-nav-sublink-danger{% if on_settings and settings_tab == 'daten' %} is-active{% endif %}" href="/administrator/einstellungen?tab=daten">
-                                Daten
-                            </a>
+                            {% set on_system = settings_tab in ['system', 'indexierung', 'bot-schutz', 'update', 'daten'] %}
+                            <details class="admin-nav-group admin-nav-group-nested" {% if on_settings and on_system %}open{% endif %}>
+                                <summary class="admin-nav-sublink admin-nav-subsummary{% if on_settings and on_system %} is-active{% endif %}">
+                                    <span>System</span>
+                                    <i class="bi bi-chevron-right admin-nav-chevron" aria-hidden="true"></i>
+                                </summary>
+                                <div class="admin-nav-sub admin-nav-sub-nested">
+                                    <a class="admin-nav-sublink{% if on_settings and settings_tab == 'system' %} is-active{% endif %}" href="/administrator/einstellungen?tab=system">
+                                        Übersicht
+                                    </a>
+                                    <a class="admin-nav-sublink{% if on_settings and settings_tab == 'indexierung' %} is-active{% endif %}" href="/administrator/einstellungen?tab=indexierung">
+                                        Indexierung
+                                    </a>
+                                    <a class="admin-nav-sublink{% if on_settings and settings_tab == 'bot-schutz' %} is-active{% endif %}" href="/administrator/einstellungen?tab=bot-schutz">
+                                        Bot-Schutz
+                                    </a>
+                                    <a class="admin-nav-sublink{% if on_settings and settings_tab == 'update' %} is-active{% endif %}" href="/administrator/einstellungen?tab=update">
+                                        Update
+                                    </a>
+                                    <a class="admin-nav-sublink admin-nav-sublink-danger{% if on_settings and settings_tab == 'daten' %} is-active{% endif %}" href="/administrator/einstellungen?tab=daten">
+                                        Löschen
+                                    </a>
+                                </div>
+                            </details>
                         </div>
                     </details>
                 {% endif %}
@@ -303,6 +322,7 @@
         });
     })();
     </script>
+    <script src="/assets/js/admin-autosave.js?v={{ asset_version|default('1') }}" defer></script>
     {% block scripts %}{% endblock %}
 </body>
 </html>

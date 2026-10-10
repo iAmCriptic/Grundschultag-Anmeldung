@@ -30,6 +30,7 @@ return static function (App $app): void {
     $app->get('/impressum', [PublicController::class, 'impressum']);
     $app->get('/datenschutz', [PublicController::class, 'datenschutz']);
     $app->get('/woher', [PublicController::class, 'about']);
+    $app->get('/robots.txt', [PublicController::class, 'robotsTxt']);
 
     $app->group('/administrator', function (RouteCollectorProxy $group): void {
         $group->get('/login', [AuthController::class, 'loginForm']);
@@ -66,6 +67,8 @@ return static function (App $app): void {
             $admin->post('/einstellungen/benutzer', [SettingsController::class, 'createUser']);
             $admin->post('/einstellungen/benutzer/{id}/delete', [SettingsController::class, 'deleteUser']);
             $admin->post('/einstellungen/daten-loeschen', [SettingsController::class, 'wipeData']);
+            $admin->post('/einstellungen/indexierung', [SettingsController::class, 'saveIndexing']);
+            $admin->post('/einstellungen/bot-schutz', [SettingsController::class, 'saveBotProtection']);
             $admin->post('/einstellungen/update-quelle', [SettingsController::class, 'saveUpdateSource']);
             $admin->post('/einstellungen/update-check', [SettingsController::class, 'checkUpdate']);
             $admin->post('/einstellungen/update', [SettingsController::class, 'runUpdate']);

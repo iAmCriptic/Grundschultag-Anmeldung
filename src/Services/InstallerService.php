@@ -62,11 +62,14 @@ final class InstallerService
 
         $defaults = [
             'site_title' => $app['app_name'],
+            'site_subtitle' => '',
             'welcome_text' => "Willkommen zur Anmeldung für den Grundschultag.\n\nBitte melden Sie sich über den Button unten an.",
             'welcome_image' => '',
             'site_logo' => '',
             'registration_start' => '',
             'registration_end' => '',
+            'capacity_display' => SettingsService::CAPACITY_FREE_NUMBERS,
+            'full_item_behavior' => SettingsService::FULL_OPEN,
             'mail_from' => $mail['from'],
             'mail_from_name' => $mail['from_name'],
             'mail_subject' => $mail['subject'],
@@ -77,6 +80,14 @@ final class InstallerService
             'datenschutz_text' => '',
             'about_link_label' => 'Woher kommt diese Seite',
             'about_text' => '',
+            'homepage_button_enabled' => '0',
+            'homepage_button_url' => '',
+            'homepage_button_label' => 'Zur Homepage',
+            'public_theme_toggle' => '0',
+            'google_indexing' => '0',
+            'bot_protection_provider' => SettingsService::BOT_OFF,
+            'bot_protection_site_key' => '',
+            'bot_protection_secret_key' => '',
         ];
         $stmt = $pdo->prepare(
             'INSERT INTO settings (setting_key, setting_value) VALUES (:k, :v)

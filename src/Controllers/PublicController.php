@@ -6,6 +6,7 @@ namespace App\Controllers;
 
 use App\Services\AnmeldungService;
 use App\Services\AuthService;
+use App\Services\BotProtectionService;
 use App\Services\CsrfService;
 use App\Services\FachbereichService;
 use App\Services\SettingsService;
@@ -21,7 +22,8 @@ final class PublicController
         private readonly FachbereichService $fachbereiche,
         private readonly AnmeldungService $anmeldungen,
         private readonly CsrfService $csrf,
-        private readonly AuthService $auth
+        private readonly AuthService $auth,
+        private readonly BotProtectionService $botProtection
     ) {
     }
 
@@ -54,6 +56,8 @@ final class PublicController
             'fachbereiche' => $this->activeFachbereicheWithSchienen(),
             'admin_test_mode' => !$open && $adminTest,
             'flash' => $flash,
+            'capacity_display' => $this->settings->capacityDisplay(),
+            'full_item_behavior' => $this->settings->fullItemBehavior(),
         ]);
     }
 
@@ -72,12 +76,18 @@ final class PublicController
 
         $open = $this->settings->isRegistrationOpen();
         $adminTest = $this->auth->check();
+        if ($this->isFachbereichBlockedWhenFull($fachbereich) && !$adminTest) {
+            $_SESSION['flash'] = 'Dieser Fachbereich ist ausgebucht.';
+            return $response->withHeader('Location', '/anmelden')->withStatus(302);
+        }
 
         return $this->view->render($response, 'public/register.twig', [
             'fachbereich' => $fachbereich,
             'error' => null,
             'old' => [],
             'admin_test_mode' => !$open && $adminTest,
+            'capacity_display' => $this->settings->capacityDisplay(),
+            'bot_protection' => $this->botProtection->widgetConfig(),
         ]);
     }
 
@@ -100,7 +110,13 @@ final class PublicController
         $adminTest = $this->auth->check();
         $schieneId = (int) ($data['schiene_id'] ?? 0);
 
+        if ($this->isFachbereichBlockedWhenFull($fachbereich) && !$adminTest) {
+            $_SESSION['flash'] = 'Dieser Fachbereich ist ausgebucht.';
+            return $response->withHeader('Location', '/anmelden')->withStatus(302);
+        }
+
         try {
+            $this->botProtection->assertValid($data, $this->clientIp($request));
             $this->assertSchieneBelongsToFachbereich($schieneId, $fachbereichId);
             $anmeldung = $this->anmeldungen->register([
                 'name' => (string) ($data['name'] ?? ''),
@@ -116,6 +132,8 @@ final class PublicController
                 'error' => $e->getMessage(),
                 'old' => $data,
                 'admin_test_mode' => !$open && $adminTest,
+                'capacity_display' => $this->settings->capacityDisplay(),
+                'bot_protection' => $this->botProtection->widgetConfig(),
             ]);
         }
     }
@@ -141,24 +159,29 @@ final class PublicController
         }
         return $this->view->render($response, 'public/cancel.twig', [
             'anmeldung' => $anmeldung,
+            'bot_protection' => $this->botProtection->widgetConfig(),
         ]);
     }
 
     public function cancelSubmit(Request $request, Response $response, array $args): Response
     {
         $token = (string) $args['token'];
+        $data = (array) $request->getParsedBody();
         try {
+            $this->botProtection->assertValid($data, $this->clientIp($request));
             $this->anmeldungen->cancel($token);
             $anmeldung = $this->anmeldungen->findByToken($token);
             return $this->view->render($response, 'public/cancel.twig', [
                 'anmeldung' => $anmeldung,
                 'done' => true,
+                'bot_protection' => $this->botProtection->widgetConfig(),
             ]);
         } catch (\Throwable $e) {
             $anmeldung = $this->anmeldungen->findByToken($token);
             return $this->view->render($response->withStatus(400), 'public/cancel.twig', [
                 'anmeldung' => $anmeldung,
                 'error' => $e->getMessage(),
+                'bot_protection' => $this->botProtection->widgetConfig(),
             ]);
         }
     }
@@ -224,19 +247,7 @@ final class PublicController
         $list = $this->fachbereiche->all(true);
         $withSchienen = [];
         foreach ($list as $fb) {
-            $schienen = $this->fachbereiche->schienenFor((int) $fb['id']);
-            $kapTotal = 0;
-            $freiTotal = 0;
-            foreach ($schienen as $schiene) {
-                $kap = (int) $schiene['kapazitaet'];
-                $belegt = (int) ($schiene['belegt'] ?? 0);
-                $kapTotal += $kap;
-                $freiTotal += max(0, $kap - $belegt);
-            }
-            $fb['schienen'] = $schienen;
-            $fb['kap_total'] = $kapTotal;
-            $fb['frei_total'] = $freiTotal;
-            $withSchienen[] = $fb;
+            $withSchienen[] = $this->enrichFachbereichCapacity($fb, $this->fachbereiche->schienenFor((int) $fb['id']));
         }
         return $withSchienen;
     }
@@ -248,15 +259,49 @@ final class PublicController
         if ($fb === null || !(int) ($fb['aktiv'] ?? 0)) {
             return null;
         }
-        $schienen = $this->fachbereiche->schienenFor($id);
+        return $this->enrichFachbereichCapacity($fb, $this->fachbereiche->schienenFor($id));
+    }
+
+    /**
+     * @param array<string, mixed> $fb
+     * @param list<array<string, mixed>> $schienen
+     * @return array<string, mixed>
+     */
+    private function enrichFachbereichCapacity(array $fb, array $schienen): array
+    {
+        $kapTotal = 0;
+        $freiTotal = 0;
+        $belegtTotal = 0;
+        $schienenFree = 0;
         foreach ($schienen as &$schiene) {
             $kap = (int) $schiene['kapazitaet'];
             $belegt = (int) ($schiene['belegt'] ?? 0);
-            $schiene['frei'] = max(0, $kap - $belegt);
+            $frei = max(0, $kap - $belegt);
+            $schiene['frei'] = $frei;
+            $schiene['belegt'] = $belegt;
+            $kapTotal += $kap;
+            $freiTotal += $frei;
+            $belegtTotal += $belegt;
+            if ($frei > 0) {
+                $schienenFree++;
+            }
         }
         unset($schiene);
+
         $fb['schienen'] = $schienen;
+        $fb['kap_total'] = $kapTotal;
+        $fb['frei_total'] = $freiTotal;
+        $fb['belegt_total'] = $belegtTotal;
+        $fb['schienen_total'] = count($schienen);
+        $fb['schienen_free'] = $schienenFree;
         return $fb;
+    }
+
+    /** @param array<string, mixed> $fachbereich */
+    private function isFachbereichBlockedWhenFull(array $fachbereich): bool
+    {
+        return $this->settings->fullItemBehavior() === SettingsService::FULL_GRAY
+            && (int) ($fachbereich['frei_total'] ?? 0) <= 0;
     }
 
     private function assertSchieneBelongsToFachbereich(int $schieneId, int $fachbereichId): void
@@ -265,6 +310,27 @@ final class PublicController
         if ($schiene === null || (int) $schiene['fachbereich_id'] !== $fachbereichId) {
             throw new \RuntimeException('Bitte eine gültige Schiene für diesen Fachbereich wählen.');
         }
+    }
+
+    public function robotsTxt(Request $request, Response $response): Response
+    {
+        if ($this->settings->googleIndexingEnabled()) {
+            $body = "User-agent: *\nAllow: /\nDisallow: /administrator\n";
+        } else {
+            $body = "User-agent: *\nDisallow: /\n";
+        }
+
+        $response->getBody()->write($body);
+        return $response
+            ->withHeader('Content-Type', 'text/plain; charset=utf-8')
+            ->withHeader('Cache-Control', 'public, max-age=3600');
+    }
+
+    private function clientIp(Request $request): ?string
+    {
+        $server = $request->getServerParams();
+        $ip = (string) ($server['REMOTE_ADDR'] ?? '');
+        return $ip !== '' ? $ip : null;
     }
 
     private function renderLegalPage(

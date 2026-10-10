@@ -24,6 +24,14 @@ final class CsrfMiddleware implements MiddlewareInterface
             $token = is_array($body) ? ($body['_csrf'] ?? null) : null;
             if (!$this->csrf->validate(is_string($token) ? $token : null)) {
                 $response = new Response(403);
+                $isAjax = strtolower($request->getHeaderLine('X-Requested-With')) === 'xmlhttprequest';
+                if ($isAjax) {
+                    $response->getBody()->write(json_encode([
+                        'ok' => false,
+                        'error' => 'Ungültiges CSRF-Token. Bitte Seite neu laden.',
+                    ], JSON_THROW_ON_ERROR));
+                    return $response->withHeader('Content-Type', 'application/json');
+                }
                 $response->getBody()->write('Ungültiges CSRF-Token. Bitte Seite neu laden.');
                 return $response;
             }

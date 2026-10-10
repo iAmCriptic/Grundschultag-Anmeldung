@@ -1,6 +1,13 @@
 {% extends 'layouts/base.twig' %}
 {% block title %}Anmeldung · {{ fachbereich.name }} · {{ app_name }}{% endblock %}
 {% block content %}
+{% set capacity_mode = capacity_display|default('free_numbers') %}
+{% set selected_schiene_id = old.schiene_id|default('') %}
+{% set start_step = selected_schiene_id != '' ? 2 : 1 %}
+{% set selected_schiene = selected_schiene_id != ''
+    ? (fachbereich.schienen|filter(s => s.id == selected_schiene_id)|first)
+    : null %}
+{% set selected_schiene_name = selected_schiene ? selected_schiene.name : '' %}
 <section class="card app-card overflow-hidden">
     {% if fachbereich.teaser_bild %}
         <div class="teaser-media teaser-media-hero">
@@ -8,12 +15,7 @@
         </div>
     {% endif %}
     <div class="card-body p-4">
-        <p class="mb-2"><a class="text-decoration-none" href="/anmelden">← Alle Fachbereiche</a></p>
-        <h1 class="h2 mb-3">{{ fachbereich.name }}</h1>
-
-        {% if fachbereich.teaser_text %}
-            <div class="mb-4 rich-content">{{ fachbereich.teaser_text|rich }}</div>
-        {% endif %}
+        <p class="mb-2"><a class="btn btn-outline-primary" href="/anmelden">← Alle Fachbereiche</a></p>
 
         {% if admin_test_mode|default(false) %}
             <div class="alert alert-info">Testmodus: Die öffentliche Anmeldung ist geschlossen. Als Administrator können Sie den Ablauf trotzdem prüfen.</div>
@@ -22,43 +24,146 @@
         {% if error %}<div class="alert alert-danger">{{ error }}</div>{% endif %}
 
         {% if fachbereich.schienen is empty %}
+            <h1 class="h2 mb-3">{{ fachbereich.name }}</h1>
             <div class="alert alert-warning">Für diesen Fachbereich sind derzeit keine Schienen verfügbar.</div>
             <p class="mb-0"><a class="btn btn-outline-primary" href="/anmelden">Zurück zur Übersicht</a></p>
+        {% elseif fachbereich.frei_total|default(0) <= 0 %}
+            <h1 class="h2 mb-3">{{ fachbereich.name }}</h1>
+            <div class="alert alert-warning">Dieser Fachbereich ist derzeit ausgebucht.</div>
+            <p class="mb-0"><a class="btn btn-outline-primary" href="/anmelden">Zurück zur Übersicht</a></p>
         {% else %}
-            <form method="post" action="/anmelden/{{ fachbereich.id }}" id="register-form">
+            <form method="post" action="/anmelden/{{ fachbereich.id }}" id="register-form" data-start-step="{{ start_step }}">
                 {{ csrf.field()|raw }}
+                <input type="hidden" name="schiene_id" id="schiene_id" value="{{ selected_schiene_id }}" required>
 
-                <div class="mb-3">
-                    <label class="form-label" for="schiene_id">Schiene</label>
-                    <select class="form-select" name="schiene_id" id="schiene_id" required>
-                        <option value="">Bitte Schiene wählen…</option>
+                <div class="register-step{% if start_step != 1 %} is-hidden{% endif %}" data-register-step="1">
+                    <h1 class="h2 mb-3">{{ fachbereich.name }}</h1>
+
+                    {% if fachbereich.teaser_text %}
+                        <div class="mb-4 rich-content">{{ fachbereich.teaser_text|rich }}</div>
+                    {% endif %}
+
+                    <h2 class="h5 mb-3">Schiene wählen</h2>
+                    <ul class="schiene-pick-list" role="list">
                         {% for s in fachbereich.schienen %}
-                            <option value="{{ s.id }}"
-                                {% if old.schiene_id|default(0) == s.id %}selected{% endif %}
-                                {% if s.frei <= 0 %}disabled{% endif %}>
-                                {% if s.frei <= 0 %}
-                                    {{ s.name }} (ausgebucht)
+                            {% set is_full = s.frei <= 0 %}
+                            {% set meta = '' %}
+                            {% if is_full %}
+                                {% set meta = 'Ausgebucht' %}
+                            {% elseif capacity_mode == 'free_numbers' %}
+                                {% set meta = s.frei ~ ' von ' ~ s.kapazitaet ~ ' Plätzen frei' %}
+                            {% elseif capacity_mode == 'free_schienen' %}
+                                {% set meta = 'Frei' %}
+                            {% endif %}
+                            <li>
+                                {% if is_full %}
+                                    <div class="schiene-pick-item is-full is-disabled" aria-disabled="true">
+                                        <div class="schiene-pick-body">
+                                            <span class="schiene-pick-title">{{ s.name }}</span>
+                                            {% if meta %}<span class="schiene-pick-meta">{{ meta }}</span>{% endif %}
+                                        </div>
+                                        <span class="schiene-pick-arrow" aria-hidden="true">—</span>
+                                    </div>
                                 {% else %}
-                                    {{ s.name }} ({{ s.frei }} frei von {{ s.kapazitaet }})
+                                    <button type="button"
+                                            class="schiene-pick-item{% if selected_schiene_id != '' and selected_schiene_id == s.id %} is-selected{% endif %}"
+                                            data-schiene-id="{{ s.id }}"
+                                            data-schiene-name="{{ s.name|e('html_attr') }}">
+                                        <div class="schiene-pick-body">
+                                            <span class="schiene-pick-title">{{ s.name }}</span>
+                                            {% if meta %}<span class="schiene-pick-meta">{{ meta }}</span>{% endif %}
+                                        </div>
+                                        <span class="schiene-pick-arrow" aria-hidden="true">→</span>
+                                    </button>
                                 {% endif %}
-                            </option>
+                            </li>
                         {% endfor %}
-                    </select>
+                    </ul>
+                    <p class="mt-4 mb-0"><a class="btn btn-outline-primary" href="/anmelden">Abbrechen</a></p>
                 </div>
 
-                <div class="mb-3">
-                    <label class="form-label" for="name">Vor &amp; Nachname</label>
-                    <input class="form-control" type="text" name="name" id="name" required value="{{ old.name|default('') }}">
-                </div>
-                <div class="mb-3">
-                    <label class="form-label" for="email">E-Mail</label>
-                    <input class="form-control" type="email" name="email" id="email" required value="{{ old.email|default('') }}">
-                </div>
+                <div class="register-step{% if start_step != 2 %} is-hidden{% endif %}" data-register-step="2">
+                    <button type="button" class="btn btn-outline-primary mb-2" id="register-back">← Andere Schiene wählen</button>
 
-                <button type="submit" class="btn btn-primary">Anmeldung absenden</button>
-                <p class="mt-3 mb-0"><a href="/anmelden">Abbrechen</a></p>
+                    <div class="register-summary mb-4">
+                        <p class="register-summary-fachbereich mb-1">{{ fachbereich.name }}</p>
+                        <p class="register-summary-schiene mb-0" id="register-selected-schiene">{{ selected_schiene_name }}</p>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label" for="name">Vor &amp; Nachname</label>
+                        <input class="form-control" type="text" name="name" id="name" required value="{{ old.name|default('') }}" autocomplete="name">
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label" for="email">E-Mail</label>
+                        <input class="form-control" type="email" name="email" id="email" required value="{{ old.email|default('') }}" autocomplete="email">
+                    </div>
+
+                    {% include 'partials/bot_protection.twig' %}
+
+                    <button type="submit" class="btn btn-primary">Anmeldung absenden</button>
+                    <p class="mt-3 mb-0"><a class="btn btn-outline-primary" href="/anmelden">Abbrechen</a></p>
+                </div>
             </form>
         {% endif %}
     </div>
 </section>
+{% endblock %}
+
+{% block scripts %}
+{% set bp = bot_protection|default({enabled: false, script_url: ''}) %}
+{% if bp.enabled and bp.script_url %}
+<script src="{{ bp.script_url }}" async defer></script>
+{% endif %}
+{% if fachbereich.schienen is not empty and fachbereich.frei_total|default(0) > 0 %}
+<script>
+(function () {
+    var form = document.getElementById('register-form');
+    if (!form) return;
+
+    var schieneInput = document.getElementById('schiene_id');
+    var selectedLabel = document.getElementById('register-selected-schiene');
+    var backBtn = document.getElementById('register-back');
+    var steps = form.querySelectorAll('[data-register-step]');
+    var picks = form.querySelectorAll('.schiene-pick-item[data-schiene-id]');
+
+    function showStep(step) {
+        steps.forEach(function (el) {
+            el.classList.toggle('is-hidden', el.getAttribute('data-register-step') !== String(step));
+        });
+        if (step === 2) {
+            var nameInput = document.getElementById('name');
+            if (nameInput) nameInput.focus();
+        }
+    }
+
+    picks.forEach(function (btn) {
+        btn.addEventListener('click', function () {
+            var id = btn.getAttribute('data-schiene-id') || '';
+            var name = btn.getAttribute('data-schiene-name') || '';
+            if (!id) return;
+            schieneInput.value = id;
+            if (selectedLabel) selectedLabel.textContent = name;
+            picks.forEach(function (other) {
+                other.classList.toggle('is-selected', other === btn);
+            });
+            showStep(2);
+        });
+    });
+
+    if (backBtn) {
+        backBtn.addEventListener('click', function () {
+            showStep(1);
+        });
+    }
+
+    form.addEventListener('submit', function (e) {
+        if (!schieneInput.value) {
+            e.preventDefault();
+            showStep(1);
+        }
+    });
+})();
+</script>
+{% endif %}
 {% endblock %}

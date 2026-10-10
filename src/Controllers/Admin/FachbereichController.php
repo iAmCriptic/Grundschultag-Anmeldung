@@ -138,6 +138,8 @@ final class FachbereichController
                 $this->uploads->delete($bild);
                 $bild = null;
             }
+            $hadUpload = isset($files['teaser_bild']) && $files['teaser_bild']->getError() !== UPLOAD_ERR_NO_FILE;
+            $hadRemove = !empty($data['remove_image']);
             $this->fachbereiche->update($id, [
                 'name' => trim((string) ($data['name'] ?? '')),
                 'teaser_text' => $this->html->sanitize((string) ($data['teaser_text'] ?? '')),
@@ -146,9 +148,24 @@ final class FachbereichController
                 'aktiv' => isset($data['aktiv']) ? 1 : 0,
                 'sortierung' => (int) ($fb['sortierung'] ?? 0),
             ]);
+            if (strtolower($request->getHeaderLine('X-Requested-With')) === 'xmlhttprequest') {
+                $response->getBody()->write(json_encode([
+                    'ok' => true,
+                    'reload' => $hadUpload || $hadRemove,
+                    'message' => 'Gespeichert.',
+                ], JSON_THROW_ON_ERROR));
+                return $response->withHeader('Content-Type', 'application/json');
+            }
             $_SESSION['flash'] = 'Fachbereich gespeichert.';
             return $response->withHeader('Location', '/administrator/fachbereiche/' . $id)->withStatus(302);
         } catch (\Throwable $e) {
+            if (strtolower($request->getHeaderLine('X-Requested-With')) === 'xmlhttprequest') {
+                $response->getBody()->write(json_encode([
+                    'ok' => false,
+                    'error' => $e->getMessage(),
+                ], JSON_THROW_ON_ERROR));
+                return $response->withHeader('Content-Type', 'application/json')->withStatus(400);
+            }
             return $this->view->render($response->withStatus(400), 'admin/fachbereiche/form.twig', [
                 'fachbereich' => array_merge($fb, $data),
                 'schienen' => $this->fachbereiche->schienenFor($id),
@@ -258,14 +275,29 @@ final class FachbereichController
         }
 
         $data = (array) $request->getParsedBody();
+        $ajax = strtolower($request->getHeaderLine('X-Requested-With')) === 'xmlhttprequest';
         try {
             $this->fachbereiche->updateSchiene(
                 (int) $args['schieneId'],
                 trim((string) ($data['name'] ?? '')),
                 (int) ($data['kapazitaet'] ?? 20)
             );
+            if ($ajax) {
+                $response->getBody()->write(json_encode([
+                    'ok' => true,
+                    'message' => 'Gespeichert.',
+                ], JSON_THROW_ON_ERROR));
+                return $response->withHeader('Content-Type', 'application/json');
+            }
             $_SESSION['flash'] = 'Schiene gespeichert.';
         } catch (\Throwable $e) {
+            if ($ajax) {
+                $response->getBody()->write(json_encode([
+                    'ok' => false,
+                    'error' => $e->getMessage(),
+                ], JSON_THROW_ON_ERROR));
+                return $response->withHeader('Content-Type', 'application/json')->withStatus(400);
+            }
             $_SESSION['flash'] = $e->getMessage();
         }
         return $response->withHeader('Location', '/administrator/fachbereiche/' . $id)->withStatus(302);
