@@ -10,13 +10,13 @@
             {{ csrf.field()|raw }}
             <div class="mb-3">
                 <label class="form-label" for="username">Benutzername</label>
-                <input class="form-control" type="text" name="username" id="username" required autocomplete="username">
+                <input class="form-control" type="text" name="username" id="username" required autocomplete="username"{% if locked %} disabled{% endif %}>
             </div>
             <div class="mb-3">
                 <label class="form-label" for="password">Passwort</label>
-                <input class="form-control" type="password" name="password" id="password" required autocomplete="current-password">
+                <input class="form-control" type="password" name="password" id="password" required autocomplete="current-password"{% if locked %} disabled{% endif %}>
             </div>
-            <button type="submit" class="btn btn-primary">Anmelden</button>
+            <button type="submit" class="btn btn-primary"{% if locked %} disabled{% endif %}>Anmelden</button>
         </form>
     </div>
 </section>

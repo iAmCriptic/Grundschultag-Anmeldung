@@ -43,7 +43,7 @@ final class SettingsController
         $error = $_SESSION['flash_error'] ?? null;
         unset($_SESSION['flash'], $_SESSION['flash_error']);
 
-        $tab = (string) ($request->getQueryParams()['tab'] ?? 'darstellung');
+        $tab = (string) ($request->getQueryParams()['tab'] ?? 'uebersicht');
 
         return $this->renderSettings($response, $flash, $error, null, $tab);
     }
@@ -370,10 +370,10 @@ final class SettingsController
         ?array $settingsOverride = null,
         ?string $activeTab = null
     ): Response {
-        $allowed = ['darstellung', 'zeitraum', 'email', 'rechtliches', 'benutzer', 'daten', 'update'];
-        $tab = $activeTab ?? 'darstellung';
+        $allowed = ['uebersicht', 'darstellung', 'zeitraum', 'email', 'rechtliches', 'benutzer', 'daten', 'update'];
+        $tab = $activeTab ?? 'uebersicht';
         if (!in_array($tab, $allowed, true)) {
-            $tab = 'darstellung';
+            $tab = 'uebersicht';
         }
 
         $updateStatus = null;

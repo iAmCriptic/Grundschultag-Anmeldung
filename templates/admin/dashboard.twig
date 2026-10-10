@@ -1,62 +1,132 @@
 {% extends 'layouts/admin.twig' %}
 {% block title %}Übersicht{% endblock %}
 {% block content %}
-<section class="card app-card">
-    <div class="card-body p-4">
-        <h1 class="h2 mb-3">Übersicht</h1>
-        {% if flash %}<div class="alert alert-info">{{ flash }}</div>{% endif %}
-        {% if update_notice %}
-            <div class="alert alert-warning d-flex flex-wrap align-items-center justify-content-between gap-2">
-                <div>
-                    <strong>Update verfügbar:</strong>
-                    Version <code>{{ update_notice.current }}</code> → <code>{{ update_notice.remote }}</code>
-                </div>
-                <a class="btn btn-sm btn-warning" href="/administrator/einstellungen?tab=update">Zum Update</a>
-            </div>
-        {% endif %}
-        <p>Angemeldet als <strong>{{ admin_username }}</strong>. Aktive Anmeldungen: <strong>{{ active_count }}</strong></p>
+{% set window = registration_window %}
 
-        <div class="row g-3 mb-4">
-            <div class="col-md-4">
-                <a class="btn btn-outline-primary w-100 py-3" href="/administrator/fachbereiche">Fachbereiche verwalten</a>
-            </div>
-            <div class="col-md-4">
-                <a class="btn btn-outline-primary w-100 py-3" href="/administrator/listen">Listen herunterladen</a>
-            </div>
+{% if flash %}<div class="alert alert-info mb-3">{{ flash }}</div>{% endif %}
+{% if update_notice %}
+    <div class="alert alert-warning d-flex flex-wrap align-items-center justify-content-between gap-2 mb-3">
+        <div>
+            <strong>Update verfügbar:</strong>
+            Version <code>{{ update_notice.current }}</code> → <code>{{ update_notice.remote }}</code>
+        </div>
+        <a class="btn btn-sm btn-warning" href="/administrator/einstellungen?tab=update">Zum Update</a>
+    </div>
+{% endif %}
+
+<div class="dashboard-grid">
+    <section class="dash-widget dash-widget-window is-{{ window.state }}">
+        <header class="dash-widget-header">
+            <h2 class="dash-widget-title">Anmeldefenster</h2>
             {% if admin_is_full %}
-            <div class="col-md-4">
-                <a class="btn btn-outline-primary w-100 py-3" href="/administrator/einstellungen">Einstellungen</a>
+                <a class="dash-widget-action" href="/administrator/einstellungen?tab=zeitraum" title="Zeitraum bearbeiten">
+                    <i class="bi bi-gear" aria-hidden="true"></i>
+                </a>
+            {% endif %}
+        </header>
+        <div class="dash-widget-body">
+            <div class="dash-status-badge">
+                <span class="dash-status-dot" aria-hidden="true"></span>
+                <span class="dash-status-label">{{ window.label }}</span>
             </div>
+            <p class="dash-window-count">
+                <strong>{{ active_count }}</strong>
+                aktive Anmeldung{% if active_count != 1 %}en{% endif %}
+            </p>
+            {% if window.start or window.end %}
+                <dl class="dash-window-dates">
+                    <div>
+                        <dt>Start</dt>
+                        <dd>{% if window.start %}{{ window.start|date('d.m.Y, H:i') }} Uhr{% else %}—{% endif %}</dd>
+                    </div>
+                    <div>
+                        <dt>Ende</dt>
+                        <dd>{% if window.end %}{{ window.end|date('d.m.Y, H:i') }} Uhr{% else %}—{% endif %}</dd>
+                    </div>
+                </dl>
+            {% else %}
+                <p class="dash-widget-note mb-0">Kein Zeitraum hinterlegt – die Anmeldung ist dauerhaft offen.</p>
             {% endif %}
         </div>
+    </section>
 
-        <h2 class="h4">Belegung</h2>
-        {% if fachbereiche is empty %}
-            <p class="mb-0">Noch keine Fachbereiche angelegt.</p>
-        {% else %}
-            <div class="table-responsive">
-                <table class="table table-striped align-middle">
-                    <thead>
-                        <tr><th>Fachbereich</th><th>Status</th><th>Schienen</th></tr>
-                    </thead>
-                    <tbody>
-                    {% for fb in fachbereiche %}
-                        <tr>
-                            <td><a href="/administrator/fachbereiche/{{ fb.id }}">{{ fb.name }}</a></td>
-                            <td>{% if fb.aktiv %}aktiv{% else %}inaktiv{% endif %}</td>
-                            <td>
-                                {% for s in fb.schienen %}
-                                    {{ s.name }}: {{ s.belegt }}/{{ s.kapazitaet }}{% if not loop.last %}; {% endif %}
-                                {% else %}
-                                    —
-                                {% endfor %}
-                            </td>
-                        </tr>
-                    {% endfor %}
-                    </tbody>
-                </table>
+    <section class="dash-widget">
+        <header class="dash-widget-header">
+            <h2 class="dash-widget-title">Schnellaktionen</h2>
+        </header>
+        <div class="dash-widget-body">
+            <div class="dash-quick-actions">
+                <a class="dash-quick-action" href="/administrator/fachbereiche">
+                    <i class="bi bi-grid-3x3-gap" aria-hidden="true"></i>
+                    <span>Fachbereiche verwalten</span>
+                </a>
+                <a class="dash-quick-action" href="/administrator/listen">
+                    <i class="bi bi-file-earmark-text" aria-hidden="true"></i>
+                    <span>Listen</span>
+                </a>
+                {% if admin_is_full %}
+                    <a class="dash-quick-action" href="/administrator/einstellungen">
+                        <i class="bi bi-gear" aria-hidden="true"></i>
+                        <span>Einstellungen</span>
+                    </a>
+                {% endif %}
             </div>
-        {% endif %}
-    </div>
-</section>
+        </div>
+    </section>
+
+    <section class="dash-widget dash-widget-wide">
+        <header class="dash-widget-header">
+            <h2 class="dash-widget-title">Übersicht Anmeldungen</h2>
+            <span class="dash-widget-meta">{{ active_count }} aktiv</span>
+        </header>
+        <div class="dash-widget-body">
+            {% if fachbereiche is empty %}
+                <p class="mb-0 text-muted">Noch keine Fachbereiche angelegt.</p>
+            {% else %}
+                <div class="table-responsive">
+                    <table class="table table-sm align-middle dash-table mb-0">
+                        <thead>
+                            <tr>
+                                <th>Fachbereich</th>
+                                <th>Schienen</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                        {% for fb in fachbereiche %}
+                            <tr>
+                                <td>
+                                    <span class="status-icon-row">
+                                        {% if fb.aktiv %}
+                                            <i class="bi bi-check-circle-fill status-icon status-icon-ok" title="Aktiv" aria-label="Aktiv"></i>
+                                        {% else %}
+                                            <i class="bi bi-x-circle-fill status-icon status-icon-off" title="Inaktiv" aria-label="Inaktiv"></i>
+                                        {% endif %}
+                                        <a href="/administrator/fachbereiche/{{ fb.id }}">{{ fb.name }}</a>
+                                    </span>
+                                </td>
+                                <td>
+                                    {% if fb.schienen is empty %}
+                                        <span class="text-muted">—</span>
+                                    {% else %}
+                                        <ul class="dash-schienen-list">
+                                            {% for s in fb.schienen %}
+                                                <li>
+                                                    <span>{{ s.name }}</span>
+                                                    <span class="dash-capacity{% if s.belegt >= s.kapazitaet %} is-full{% endif %}">
+                                                        {{ s.belegt }}/{{ s.kapazitaet }}
+                                                    </span>
+                                                </li>
+                                            {% endfor %}
+                                        </ul>
+                                    {% endif %}
+                                </td>
+                            </tr>
+                        {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            {% endif %}
+        </div>
+    </section>
+</div>
 {% endblock %}

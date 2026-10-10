@@ -6,6 +6,7 @@ use App\Controllers\Admin\AuthController;
 use App\Controllers\Admin\DashboardController;
 use App\Controllers\Admin\ExportController;
 use App\Controllers\Admin\FachbereichController;
+use App\Controllers\Admin\MailController;
 use App\Controllers\Admin\SettingsController;
 use App\Controllers\PublicController;
 use App\Controllers\SetupController;
@@ -20,8 +21,9 @@ return static function (App $app): void {
     $app->post('/setup/install', [SetupController::class, 'install']);
 
     $app->get('/', [PublicController::class, 'home']);
-    $app->get('/anmelden', [PublicController::class, 'registerForm']);
-    $app->post('/anmelden', [PublicController::class, 'registerSubmit']);
+    $app->get('/anmelden', [PublicController::class, 'registerList']);
+    $app->get('/anmelden/{id}', [PublicController::class, 'registerForm']);
+    $app->post('/anmelden/{id}', [PublicController::class, 'registerSubmit']);
     $app->get('/danke/{token}', [PublicController::class, 'thanks']);
     $app->get('/stornieren/{token}', [PublicController::class, 'cancelForm']);
     $app->post('/stornieren/{token}', [PublicController::class, 'cancelSubmit']);
@@ -41,6 +43,7 @@ return static function (App $app): void {
             $admin->get('/fachbereiche', [FachbereichController::class, 'index']);
             $admin->get('/fachbereiche/neu', [FachbereichController::class, 'createForm']);
             $admin->post('/fachbereiche', [FachbereichController::class, 'create']);
+            $admin->post('/fachbereiche/reorder', [FachbereichController::class, 'reorder']);
             $admin->get('/fachbereiche/{id}', [FachbereichController::class, 'editForm']);
             $admin->post('/fachbereiche/{id}', [FachbereichController::class, 'update']);
             $admin->post('/fachbereiche/{id}/toggle', [FachbereichController::class, 'toggle']);
@@ -51,7 +54,12 @@ return static function (App $app): void {
             $admin->post('/fachbereiche/{id}/schienen/{schieneId}/delete', [FachbereichController::class, 'deleteSchiene']);
 
             $admin->get('/listen', [ExportController::class, 'index']);
+            $admin->get('/listen/alle.zip', [ExportController::class, 'downloadAll']);
             $admin->get('/listen/{id}/schiene/{schieneId}.pdf', [ExportController::class, 'download']);
+            $admin->post('/listen/{id}/senden', [ExportController::class, 'sendToFachbereich']);
+
+            $admin->get('/email', [MailController::class, 'form']);
+            $admin->post('/email', [MailController::class, 'send']);
 
             $admin->get('/einstellungen', [SettingsController::class, 'form']);
             $admin->post('/einstellungen', [SettingsController::class, 'save']);

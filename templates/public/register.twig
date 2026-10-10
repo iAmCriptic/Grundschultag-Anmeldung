@@ -1,10 +1,19 @@
 {% extends 'layouts/base.twig' %}
-{% block title %}Anmelden · {{ app_name }}{% endblock %}
+{% block title %}Anmeldung · {{ fachbereich.name }} · {{ app_name }}{% endblock %}
 {% block content %}
-<section class="card app-card">
+<section class="card app-card overflow-hidden">
+    {% if fachbereich.teaser_bild %}
+        <div class="teaser-media teaser-media-hero">
+            <img src="/uploads/{{ fachbereich.teaser_bild }}" alt="">
+        </div>
+    {% endif %}
     <div class="card-body p-4">
-        <h1 class="h2 mb-3">Anmeldung</h1>
-        <p>Wählen Sie einen Fachbereich und eine Schiene und geben Sie Ihre Kontaktdaten an.</p>
+        <p class="mb-2"><a class="text-decoration-none" href="/anmelden">← Alle Fachbereiche</a></p>
+        <h1 class="h2 mb-3">{{ fachbereich.name }}</h1>
+
+        {% if fachbereich.teaser_text %}
+            <div class="mb-4 rich-content">{{ fachbereich.teaser_text|rich }}</div>
+        {% endif %}
 
         {% if admin_test_mode|default(false) %}
             <div class="alert alert-info">Testmodus: Die öffentliche Anmeldung ist geschlossen. Als Administrator können Sie den Ablauf trotzdem prüfen.</div>
@@ -12,109 +21,44 @@
 
         {% if error %}<div class="alert alert-danger">{{ error }}</div>{% endif %}
 
-        {% if fachbereiche is empty %}
-            <div class="alert alert-warning">Derzeit sind keine Fachbereiche freigeschaltet.</div>
-            <p class="mb-0"><a class="btn btn-outline-primary" href="/">Zurück</a></p>
+        {% if fachbereich.schienen is empty %}
+            <div class="alert alert-warning">Für diesen Fachbereich sind derzeit keine Schienen verfügbar.</div>
+            <p class="mb-0"><a class="btn btn-outline-primary" href="/anmelden">Zurück zur Übersicht</a></p>
         {% else %}
-        <form method="post" action="/anmelden" id="register-form">
-            {{ csrf.field()|raw }}
+            <form method="post" action="/anmelden/{{ fachbereich.id }}" id="register-form">
+                {{ csrf.field()|raw }}
 
-            <div class="mb-3">
-                <label class="form-label" for="fachbereich_id">Fachbereich</label>
-                <select class="form-select" name="fachbereich_id" id="fachbereich_id" required>
-                    <option value="">Bitte wählen…</option>
-                    {% for fb in fachbereiche %}
-                        <option value="{{ fb.id }}"
-                            {% if selected_fb == fb.id or old.fachbereich_id|default(0) == fb.id %}selected{% endif %}>
-                            {{ fb.name }}
-                        </option>
-                    {% endfor %}
-                </select>
-            </div>
-
-            <div id="teaser" class="card bg-light mb-3" hidden>
-                <div class="card-body">
-                    <div class="teaser-media mb-2" id="teaser-media"></div>
-                    <div class="teaser-text" id="teaser-text"></div>
+                <div class="mb-3">
+                    <label class="form-label" for="schiene_id">Schiene</label>
+                    <select class="form-select" name="schiene_id" id="schiene_id" required>
+                        <option value="">Bitte Schiene wählen…</option>
+                        {% for s in fachbereich.schienen %}
+                            <option value="{{ s.id }}"
+                                {% if old.schiene_id|default(0) == s.id %}selected{% endif %}
+                                {% if s.frei <= 0 %}disabled{% endif %}>
+                                {% if s.frei <= 0 %}
+                                    {{ s.name }} (ausgebucht)
+                                {% else %}
+                                    {{ s.name }} ({{ s.frei }} frei von {{ s.kapazitaet }})
+                                {% endif %}
+                            </option>
+                        {% endfor %}
+                    </select>
                 </div>
-            </div>
 
-            <div class="mb-3">
-                <label class="form-label" for="schiene_id">Schiene</label>
-                <select class="form-select" name="schiene_id" id="schiene_id" required>
-                    <option value="">Zuerst Fachbereich wählen…</option>
-                </select>
-            </div>
+                <div class="mb-3">
+                    <label class="form-label" for="name">Vor &amp; Nachname</label>
+                    <input class="form-control" type="text" name="name" id="name" required value="{{ old.name|default('') }}">
+                </div>
+                <div class="mb-3">
+                    <label class="form-label" for="email">E-Mail</label>
+                    <input class="form-control" type="email" name="email" id="email" required value="{{ old.email|default('') }}">
+                </div>
 
-            <div class="mb-3">
-                <label class="form-label" for="name">Vor &amp; Nachname</label>
-                <input class="form-control" type="text" name="name" id="name" required value="{{ old.name|default('') }}">
-            </div>
-            <div class="mb-3">
-                <label class="form-label" for="email">E-Mail</label>
-                <input class="form-control" type="email" name="email" id="email" required value="{{ old.email|default('') }}">
-            </div>
-
-            <button type="submit" class="btn btn-primary">Anmeldung absenden</button>
-            <p class="mt-3 mb-0"><a href="/">Abbrechen</a></p>
-        </form>
+                <button type="submit" class="btn btn-primary">Anmeldung absenden</button>
+                <p class="mt-3 mb-0"><a href="/anmelden">Abbrechen</a></p>
+            </form>
         {% endif %}
     </div>
 </section>
-{% endblock %}
-
-{% block scripts %}
-<script>
-const fachbereiche = {{ fachbereiche|json_encode|raw }};
-const oldSchiene = {{ old.schiene_id|default(0)|json_encode|raw }};
-const fbSelect = document.getElementById('fachbereich_id');
-const schieneSelect = document.getElementById('schiene_id');
-const teaser = document.getElementById('teaser');
-const teaserMedia = document.getElementById('teaser-media');
-const teaserText = document.getElementById('teaser-text');
-
-function formatRichText(text) {
-    if (!text) return '';
-    if (/<\s*[a-z][^>]*>/i.test(text)) return text;
-    return String(text)
-        .replace(/&/g, '&amp;')
-        .replace(/</g, '&lt;')
-        .replace(/>/g, '&gt;')
-        .replace(/\n/g, '<br>');
-}
-
-function render() {
-    const id = parseInt(fbSelect.value || '0', 10);
-    const fb = fachbereiche.find(f => parseInt(f.id, 10) === id);
-    schieneSelect.innerHTML = '';
-    if (!fb) {
-        teaser.hidden = true;
-        schieneSelect.innerHTML = '<option value="">Zuerst Fachbereich wählen…</option>';
-        return;
-    }
-    teaser.hidden = false;
-    teaserText.innerHTML = formatRichText(fb.teaser_text || '');
-    teaserMedia.innerHTML = fb.teaser_bild
-        ? '<img src="/uploads/' + fb.teaser_bild + '" alt="">'
-        : '';
-    const placeholder = document.createElement('option');
-    placeholder.value = '';
-    placeholder.textContent = 'Bitte Schiene wählen…';
-    schieneSelect.appendChild(placeholder);
-    (fb.schienen || []).forEach(s => {
-        const frei = Math.max(0, parseInt(s.kapazitaet, 10) - parseInt(s.belegt || 0, 10));
-        const opt = document.createElement('option');
-        opt.value = s.id;
-        opt.textContent = s.name + ' (' + frei + ' frei von ' + s.kapazitaet + ')';
-        if (frei <= 0) {
-            opt.disabled = true;
-            opt.textContent = s.name + ' (ausgebucht)';
-        }
-        if (parseInt(oldSchiene, 10) === parseInt(s.id, 10)) opt.selected = true;
-        schieneSelect.appendChild(opt);
-    });
-}
-fbSelect.addEventListener('change', render);
-render();
-</script>
 {% endblock %}

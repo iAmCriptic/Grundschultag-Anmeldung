@@ -141,6 +141,73 @@ final class AnmeldungService
         return (int) $stmt->fetchColumn();
     }
 
+    /**
+     * Distinct active participant emails. Never expose this list in outbound mail headers.
+     *
+     * @return list<string>
+     */
+    public function activeEmails(?int $fachbereichId = null): array
+    {
+        $emails = [];
+        foreach ($this->activeRecipients($fachbereichId) as $row) {
+            $emails[] = (string) $row['email'];
+        }
+        return $emails;
+    }
+
+    /**
+     * One row per distinct active email (first matching registration wins).
+     *
+     * @return list<array{
+     *     email:string,
+     *     name:string,
+     *     fachbereich_name:string,
+     *     schiene_name:string,
+     *     token:string
+     * }>
+     */
+    public function activeRecipients(?int $fachbereichId = null): array
+    {
+        if ($fachbereichId === null) {
+            $rows = $this->pdo->query(
+                "SELECT a.name, a.email, a.token, s.name AS schiene_name, f.name AS fachbereich_name
+                 FROM anmeldungen a
+                 INNER JOIN schienen s ON s.id = a.schiene_id
+                 INNER JOIN fachbereiche f ON f.id = s.fachbereich_id
+                 WHERE a.status = 'aktiv' AND a.email <> ''
+                 ORDER BY a.email ASC, a.id ASC"
+            )->fetchAll();
+        } else {
+            $stmt = $this->pdo->prepare(
+                "SELECT a.name, a.email, a.token, s.name AS schiene_name, f.name AS fachbereich_name
+                 FROM anmeldungen a
+                 INNER JOIN schienen s ON s.id = a.schiene_id
+                 INNER JOIN fachbereiche f ON f.id = s.fachbereich_id
+                 WHERE a.status = 'aktiv' AND a.email <> '' AND s.fachbereich_id = :fb
+                 ORDER BY a.email ASC, a.id ASC"
+            );
+            $stmt->execute(['fb' => $fachbereichId]);
+            $rows = $stmt->fetchAll();
+        }
+
+        $byEmail = [];
+        foreach ($rows as $row) {
+            $email = strtolower(trim((string) ($row['email'] ?? '')));
+            if ($email === '' || !filter_var($email, FILTER_VALIDATE_EMAIL) || isset($byEmail[$email])) {
+                continue;
+            }
+            $byEmail[$email] = [
+                'email' => $email,
+                'name' => (string) ($row['name'] ?? ''),
+                'fachbereich_name' => (string) ($row['fachbereich_name'] ?? ''),
+                'schiene_name' => (string) ($row['schiene_name'] ?? ''),
+                'token' => (string) ($row['token'] ?? ''),
+            ];
+        }
+
+        return array_values($byEmail);
+    }
+
     public function countAll(): int
     {
         return (int) $this->pdo->query('SELECT COUNT(*) FROM anmeldungen')->fetchColumn();

@@ -6,6 +6,7 @@ use App\Controllers\Admin\AuthController;
 use App\Controllers\Admin\DashboardController;
 use App\Controllers\Admin\ExportController;
 use App\Controllers\Admin\FachbereichController;
+use App\Controllers\Admin\MailController;
 use App\Controllers\Admin\SettingsController;
 use App\Controllers\PublicController;
 use App\Controllers\SetupController;
@@ -17,6 +18,7 @@ use App\Services\ExportService;
 use App\Services\FachbereichService;
 use App\Services\HtmlContentService;
 use App\Services\InstallerService;
+use App\Services\LoginThrottleService;
 use App\Services\MailService;
 use App\Services\SchemaMigrator;
 use App\Services\SettingsService;
@@ -55,9 +57,13 @@ return [
     },
 
     Twig::class => static function (ContainerInterface $c): Twig {
+        $debug = (bool) ($c->get('settings')['display_error_details'] ?? false);
+        $twigCache = $c->get('root_path') . '/storage/twig_cache';
         $twig = Twig::create($c->get('root_path') . '/templates', [
-            'cache' => false,
-            'debug' => (bool) ($c->get('settings')['display_error_details'] ?? false),
+            // Kompilierte Templates cachen (weniger CPU pro Request); bei APP_DEBUG=1 aus
+            'cache' => $debug ? false : $twigCache,
+            'debug' => $debug,
+            'auto_reload' => true,
         ]);
         $appName = (string) ($c->get('settings')['app_name'] ?? 'Grundschultag Anmeldung');
         $twig->getEnvironment()->addGlobal('csrf', $c->get(CsrfService::class));
@@ -171,11 +177,14 @@ return [
             $c->get(AuthService::class)
         );
     },
+    LoginThrottleService::class => static function (ContainerInterface $c) {
+        return new LoginThrottleService($c->get('root_path') . '/storage/login_throttle');
+    },
     AuthController::class => static function (ContainerInterface $c) {
         return new AuthController(
             $c->get(Twig::class),
             $c->get(AuthService::class),
-            $c->get(CsrfService::class),
+            $c->get(LoginThrottleService::class),
             $c->get(UpdateService::class)
         );
     },
@@ -185,7 +194,8 @@ return [
             $c->get(FachbereichService::class),
             $c->get(AnmeldungService::class),
             $c->get(AuthService::class),
-            $c->get(UpdateService::class)
+            $c->get(UpdateService::class),
+            $c->get(SettingsService::class)
         );
     },
     FachbereichController::class => static function (ContainerInterface $c) {
@@ -217,13 +227,27 @@ return [
             $c->get(FachbereichService::class),
             $c->get(ExportService::class),
             $c->get(SettingsService::class),
-            $c->get(AuthService::class)
+            $c->get(AuthService::class),
+            $c->get(MailService::class)
+        );
+    },
+    MailController::class => static function (ContainerInterface $c) {
+        return new MailController(
+            $c->get(Twig::class),
+            $c->get(AuthService::class),
+            $c->get(FachbereichService::class),
+            $c->get(AnmeldungService::class),
+            $c->get(MailService::class),
+            $c->get(SettingsService::class),
+            $c->get(HtmlContentService::class),
+            $c->get('settings')
         );
     },
     AdminAuthMiddleware::class => static function (ContainerInterface $c) {
         return new AdminAuthMiddleware(
             $c->get(Twig::class),
-            $c->get(AuthService::class)
+            $c->get(AuthService::class),
+            $c->get(FachbereichService::class)
         );
     },
 ];

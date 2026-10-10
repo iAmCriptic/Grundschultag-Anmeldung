@@ -7,6 +7,8 @@ namespace App\Services;
 use Dompdf\Dompdf;
 use Dompdf\Options;
 use PDO;
+use RuntimeException;
+use ZipArchive;
 
 final class ExportService
 {
@@ -118,6 +120,76 @@ HTML;
         return $dompdf->output() ?? '';
     }
 
+    /**
+     * Erzeugt ein ZIP mit einer PDF-Liste pro Schiene.
+     *
+     * @param list<array{name:string,schienen:list<array{id:int|string,name:string}>}> $fachbereiche
+     */
+    public function zipForFachbereiche(array $fachbereiche, ?string $logoFilename = null): string
+    {
+        if (!class_exists(ZipArchive::class)) {
+            throw new RuntimeException('Die PHP-Erweiterung ZipArchive ist nicht verfügbar.');
+        }
+
+        $tmp = sys_get_temp_dir() . DIRECTORY_SEPARATOR . 'listen-' . bin2hex(random_bytes(8)) . '.zip';
+
+        $zip = new ZipArchive();
+        if ($zip->open($tmp, ZipArchive::CREATE | ZipArchive::OVERWRITE) !== true) {
+            throw new RuntimeException('ZIP-Archiv konnte nicht geöffnet werden.');
+        }
+
+        $added = 0;
+        $closed = false;
+        try {
+            foreach ($fachbereiche as $fb) {
+                $fbName = (string) ($fb['name'] ?? '');
+                foreach ($fb['schienen'] ?? [] as $schiene) {
+                    $schieneId = (int) ($schiene['id'] ?? 0);
+                    $schieneName = (string) ($schiene['name'] ?? '');
+                    if ($schieneId <= 0 || $schieneName === '') {
+                        continue;
+                    }
+
+                    $pdf = $this->pdfForSchiene($fbName, $schieneName, $schieneId, $logoFilename);
+                    $filename = 'teilnehmerliste_'
+                        . $this->safeFilenamePart($fbName) . '_'
+                        . $this->safeFilenamePart($schieneName) . '.pdf';
+                    $zip->addFromString($filename, $pdf);
+                    $added++;
+                }
+            }
+
+            if ($added === 0) {
+                $zip->close();
+                $closed = true;
+                throw new RuntimeException('Keine Listen zum Verpacken vorhanden.');
+            }
+
+            $zip->close();
+            $closed = true;
+
+            $content = file_get_contents($tmp);
+            if ($content === false || $content === '') {
+                throw new RuntimeException('ZIP-Archiv konnte nicht gelesen werden.');
+            }
+
+            return $content;
+        } finally {
+            if (!$closed) {
+                $zip->close();
+            }
+            if (is_file($tmp)) {
+                @unlink($tmp);
+            }
+        }
+    }
+
+    private function safeFilenamePart(string $value): string
+    {
+        $safe = preg_replace('/[^a-zA-Z0-9_-]+/', '_', $value) ?? '';
+        return $safe !== '' ? $safe : 'liste';
+    }
+
     private function logoImgHtml(?string $logoFilename): string
     {
         if ($logoFilename === null || $logoFilename === '') {
@@ -169,18 +241,15 @@ HTML;
         $height = imagesy($image);
         $canvas = imagecreatetruecolor($width, $height);
         if ($canvas === false) {
-            imagedestroy($image);
             return null;
         }
         $white = imagecolorallocate($canvas, 255, 255, 255);
         imagefilledrectangle($canvas, 0, 0, $width, $height, $white);
         imagecopy($canvas, $image, 0, 0, 0, 0, $width, $height);
-        imagedestroy($image);
 
         ob_start();
         imagejpeg($canvas, null, 90);
         $jpeg = ob_get_clean();
-        imagedestroy($canvas);
         if ($jpeg === false || $jpeg === '') {
             return null;
         }

@@ -7,6 +7,7 @@ namespace App\Controllers\Admin;
 use App\Services\AnmeldungService;
 use App\Services\AuthService;
 use App\Services\FachbereichService;
+use App\Services\SettingsService;
 use App\Services\UpdateService;
 use Psr\Http\Message\ResponseInterface as Response;
 use Psr\Http\Message\ServerRequestInterface as Request;
@@ -19,7 +20,8 @@ final class DashboardController
         private readonly FachbereichService $fachbereiche,
         private readonly AnmeldungService $anmeldungen,
         private readonly AuthService $auth,
-        private readonly UpdateService $updater
+        private readonly UpdateService $updater,
+        private readonly SettingsService $settings
     ) {
     }
 
@@ -50,6 +52,7 @@ final class DashboardController
             'admin_is_full' => $this->auth->isFullAdmin(),
             'flash' => $flash,
             'update_notice' => $updateNotice,
+            'registration_window' => $this->registrationWindow(),
         ]);
     }
 
@@ -63,5 +66,54 @@ final class DashboardController
             return null;
         }
         return $this->auth->fachbereichId() ?? 0;
+    }
+
+    /**
+     * @return array{
+     *     open: bool,
+     *     state: string,
+     *     label: string,
+     *     start: string,
+     *     end: string
+     * }
+     */
+    private function registrationWindow(): array
+    {
+        $start = $this->settings->get('registration_start');
+        $end = $this->settings->get('registration_end');
+        $now = time();
+        $open = $this->settings->isRegistrationOpen();
+
+        $state = 'open';
+        $label = 'Geöffnet';
+
+        if ($start !== '') {
+            $startTs = strtotime($start);
+            if ($startTs !== false && $now < $startTs) {
+                $state = 'upcoming';
+                $label = 'Noch nicht geöffnet';
+            }
+        }
+        if ($state !== 'upcoming' && $end !== '') {
+            $endTs = strtotime($end);
+            if ($endTs !== false && $now > $endTs) {
+                $state = 'closed';
+                $label = 'Geschlossen';
+            }
+        }
+        if ($open && $state === 'open' && $start === '' && $end === '') {
+            $label = 'Geöffnet (ohne Zeitraum)';
+        } elseif (!$open && $state === 'open') {
+            $state = 'closed';
+            $label = 'Geschlossen';
+        }
+
+        return [
+            'open' => $open,
+            'state' => $state,
+            'label' => $label,
+            'start' => $start,
+            'end' => $end,
+        ];
     }
 }

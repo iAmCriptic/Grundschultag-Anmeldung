@@ -12,6 +12,7 @@ CREATE TABLE IF NOT EXISTS fachbereiche (
     name VARCHAR(200) NOT NULL,
     teaser_text TEXT NULL,
     teaser_bild VARCHAR(255) NULL,
+    email VARCHAR(255) NULL,
     aktiv TINYINT(1) NOT NULL DEFAULT 1,
     sortierung INT NOT NULL DEFAULT 0,
     created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,

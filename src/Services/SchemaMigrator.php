@@ -15,6 +15,7 @@ final class SchemaMigrator
     {
         try {
             $this->ensureAdminRoleColumns($pdo);
+            $this->ensureFachbereichEmailColumn($pdo);
         } catch (\Throwable) {
             // Tables may not exist yet (e.g. during setup) – ignore
         }
@@ -44,6 +45,18 @@ final class SchemaMigrator
         } catch (\Throwable) {
             // Constraint may already exist – ignore
         }
+    }
+
+    private function ensureFachbereichEmailColumn(PDO $pdo): void
+    {
+        if (!$this->tableExists($pdo, 'fachbereiche') || $this->columnExists($pdo, 'fachbereiche', 'email')) {
+            return;
+        }
+
+        $pdo->exec(
+            'ALTER TABLE fachbereiche
+             ADD COLUMN email VARCHAR(255) NULL AFTER teaser_bild'
+        );
     }
 
     private function tableExists(PDO $pdo, string $table): bool

@@ -210,6 +210,7 @@ final class UpdateService
             $sourceRoot = $this->extractZip($zipPath, $extractDir);
             $this->assertLooksLikeApp($sourceRoot);
             $files = $this->copyTree($sourceRoot, $this->rootPath);
+            $this->clearTwigCache();
             $version = $this->currentVersion();
 
             $this->settings->setMany([
@@ -573,6 +574,11 @@ final class UpdateService
             }
         }
         return false;
+    }
+
+    private function clearTwigCache(): void
+    {
+        $this->removeDirectory($this->rootPath . '/storage/twig_cache');
     }
 
     private function removeDirectory(string $dir): void

@@ -3,8 +3,20 @@
 {% block content %}
 <section class="card app-card">
     <div class="card-body p-4">
-        <h1 class="h2 mb-3">Listenausgabe</h1>
-        <p>PDF-Teilnehmerlisten (Name, E-Mail) je Schiene.</p>
+        <div class="d-flex flex-wrap align-items-start justify-content-between gap-2 mb-3">
+            <div>
+                <h1 class="h2 mb-2">Listenausgabe</h1>
+                <p class="mb-0">PDF-Teilnehmerlisten (Name, E-Mail) je Schiene.</p>
+            </div>
+            {% if fachbereiche|filter(fb => fb.schienen is not empty)|length > 0 %}
+                <a class="btn btn-primary" href="/administrator/listen/alle.zip">
+                    Alle downloaden
+                </a>
+            {% endif %}
+        </div>
+
+        {% if flash %}<div class="alert alert-success">{{ flash }}</div>{% endif %}
+        {% if error %}<div class="alert alert-danger">{{ error }}</div>{% endif %}
 
         {% if fachbereiche is empty %}
             <p class="mb-0">Keine Fachbereiche vorhanden.</p>
@@ -12,7 +24,12 @@
             <div class="table-responsive">
                 <table class="table table-striped align-middle">
                     <thead>
-                        <tr><th>Fachbereich</th><th>Schiene</th><th>Anmeldungen</th><th></th></tr>
+                        <tr>
+                            <th>Fachbereich</th>
+                            <th>Schiene</th>
+                            <th>Anmeldungen</th>
+                            <th></th>
+                        </tr>
                     </thead>
                     <tbody>
                     {% for fb in fachbereiche %}
@@ -20,17 +37,36 @@
                             <tr>
                                 <td>{{ fb.name }}</td>
                                 <td colspan="2" class="text-muted">Keine Schienen</td>
-                                <td></td>
+                                <td class="text-end">
+                                    {% if fb.email %}
+                                        <span class="text-muted small">Keine PDFs zum Senden</span>
+                                    {% else %}
+                                        <span class="text-muted small">Keine FB-E-Mail</span>
+                                    {% endif %}
+                                </td>
                             </tr>
                         {% else %}
                             {% for s in fb.schienen %}
                                 <tr>
                                     {% if loop.first %}
-                                        <td rowspan="{{ fb.schienen|length }}">{{ fb.name }}</td>
+                                        <td rowspan="{{ fb.schienen|length }}">
+                                            <div class="fw-semibold">{{ fb.name }}</div>
+                                            {% if fb.email %}
+                                                <form method="post" action="/administrator/listen/{{ fb.id }}/senden" class="mt-2"
+                                                      onsubmit="return confirm('Teilnehmerlisten per E-Mail an den Fachbereich senden?');">
+                                                    {{ csrf.field()|raw }}
+                                                    <button type="submit" class="btn btn-outline-primary btn-sm">
+                                                        An Fachbereich senden
+                                                    </button>
+                                                </form>
+                                            {% else %}
+                                                <div class="text-muted small mt-1">Keine FB-E-Mail hinterlegt</div>
+                                            {% endif %}
+                                        </td>
                                     {% endif %}
                                     <td>{{ s.name }}</td>
                                     <td>{{ s.belegt }}</td>
-                                    <td>
+                                    <td class="text-end">
                                         <a class="btn btn-outline-primary btn-sm"
                                            href="/administrator/listen/{{ fb.id }}/schiene/{{ s.id }}.pdf">
                                             PDF herunterladen

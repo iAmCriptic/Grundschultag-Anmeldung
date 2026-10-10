@@ -38,46 +38,81 @@ final class PublicController
         ]);
     }
 
-    public function registerForm(Request $request, Response $response): Response
+    public function registerList(Request $request, Response $response): Response
     {
-        $open = $this->settings->isRegistrationOpen();
-        $adminTest = $this->auth->check();
-        if (!$open && !$adminTest) {
-            return $this->view->render($response, 'public/closed.twig');
+        $gate = $this->registrationGate($response);
+        if ($gate !== null) {
+            return $gate;
         }
 
-        return $this->view->render($response, 'public/register.twig', [
+        $open = $this->settings->isRegistrationOpen();
+        $adminTest = $this->auth->check();
+        $flash = $_SESSION['flash'] ?? null;
+        unset($_SESSION['flash']);
+
+        return $this->view->render($response, 'public/register_list.twig', [
             'fachbereiche' => $this->activeFachbereicheWithSchienen(),
-            'selected_fb' => isset($request->getQueryParams()['fb']) ? (int) $request->getQueryParams()['fb'] : null,
+            'admin_test_mode' => !$open && $adminTest,
+            'flash' => $flash,
+        ]);
+    }
+
+    public function registerForm(Request $request, Response $response, array $args): Response
+    {
+        $gate = $this->registrationGate($response);
+        if ($gate !== null) {
+            return $gate;
+        }
+
+        $fachbereich = $this->findActiveFachbereichWithSchienen((int) $args['id']);
+        if ($fachbereich === null) {
+            $_SESSION['flash'] = 'Dieser Fachbereich ist nicht verfügbar.';
+            return $response->withHeader('Location', '/anmelden')->withStatus(302);
+        }
+
+        $open = $this->settings->isRegistrationOpen();
+        $adminTest = $this->auth->check();
+
+        return $this->view->render($response, 'public/register.twig', [
+            'fachbereich' => $fachbereich,
             'error' => null,
             'old' => [],
             'admin_test_mode' => !$open && $adminTest,
         ]);
     }
 
-    public function registerSubmit(Request $request, Response $response): Response
+    public function registerSubmit(Request $request, Response $response, array $args): Response
     {
+        $gate = $this->registrationGate($response);
+        if ($gate !== null) {
+            return $gate;
+        }
+
+        $fachbereichId = (int) $args['id'];
+        $fachbereich = $this->findActiveFachbereichWithSchienen($fachbereichId);
+        if ($fachbereich === null) {
+            $_SESSION['flash'] = 'Dieser Fachbereich ist nicht verfügbar.';
+            return $response->withHeader('Location', '/anmelden')->withStatus(302);
+        }
+
         $data = (array) $request->getParsedBody();
         $open = $this->settings->isRegistrationOpen();
         $adminTest = $this->auth->check();
-
-        if (!$open && !$adminTest) {
-            return $this->view->render($response, 'public/closed.twig');
-        }
+        $schieneId = (int) ($data['schiene_id'] ?? 0);
 
         try {
+            $this->assertSchieneBelongsToFachbereich($schieneId, $fachbereichId);
             $anmeldung = $this->anmeldungen->register([
                 'name' => (string) ($data['name'] ?? ''),
                 'email' => (string) ($data['email'] ?? ''),
-                'schiene_id' => (int) ($data['schiene_id'] ?? 0),
+                'schiene_id' => $schieneId,
             ], !$open && $adminTest);
             return $response
                 ->withHeader('Location', '/danke/' . $anmeldung['token'])
                 ->withStatus(302);
         } catch (\Throwable $e) {
             return $this->view->render($response->withStatus(400), 'public/register.twig', [
-                'fachbereiche' => $this->activeFachbereicheWithSchienen(),
-                'selected_fb' => isset($data['fachbereich_id']) ? (int) $data['fachbereich_id'] : null,
+                'fachbereich' => $fachbereich,
                 'error' => $e->getMessage(),
                 'old' => $data,
                 'admin_test_mode' => !$open && $adminTest,
@@ -173,16 +208,63 @@ final class PublicController
         ]);
     }
 
+    private function registrationGate(Response $response): ?Response
+    {
+        $open = $this->settings->isRegistrationOpen();
+        $adminTest = $this->auth->check();
+        if (!$open && !$adminTest) {
+            return $this->view->render($response, 'public/closed.twig');
+        }
+        return null;
+    }
+
     /** @return list<array<string, mixed>> */
     private function activeFachbereicheWithSchienen(): array
     {
         $list = $this->fachbereiche->all(true);
         $withSchienen = [];
         foreach ($list as $fb) {
-            $fb['schienen'] = $this->fachbereiche->schienenFor((int) $fb['id']);
+            $schienen = $this->fachbereiche->schienenFor((int) $fb['id']);
+            $kapTotal = 0;
+            $freiTotal = 0;
+            foreach ($schienen as $schiene) {
+                $kap = (int) $schiene['kapazitaet'];
+                $belegt = (int) ($schiene['belegt'] ?? 0);
+                $kapTotal += $kap;
+                $freiTotal += max(0, $kap - $belegt);
+            }
+            $fb['schienen'] = $schienen;
+            $fb['kap_total'] = $kapTotal;
+            $fb['frei_total'] = $freiTotal;
             $withSchienen[] = $fb;
         }
         return $withSchienen;
+    }
+
+    /** @return array<string, mixed>|null */
+    private function findActiveFachbereichWithSchienen(int $id): ?array
+    {
+        $fb = $this->fachbereiche->find($id);
+        if ($fb === null || !(int) ($fb['aktiv'] ?? 0)) {
+            return null;
+        }
+        $schienen = $this->fachbereiche->schienenFor($id);
+        foreach ($schienen as &$schiene) {
+            $kap = (int) $schiene['kapazitaet'];
+            $belegt = (int) ($schiene['belegt'] ?? 0);
+            $schiene['frei'] = max(0, $kap - $belegt);
+        }
+        unset($schiene);
+        $fb['schienen'] = $schienen;
+        return $fb;
+    }
+
+    private function assertSchieneBelongsToFachbereich(int $schieneId, int $fachbereichId): void
+    {
+        $schiene = $this->fachbereiche->findSchiene($schieneId);
+        if ($schiene === null || (int) $schiene['fachbereich_id'] !== $fachbereichId) {
+            throw new \RuntimeException('Bitte eine gültige Schiene für diesen Fachbereich wählen.');
+        }
     }
 
     private function renderLegalPage(

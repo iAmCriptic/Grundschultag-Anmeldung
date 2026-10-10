@@ -1,0 +1,136 @@
+{% extends 'layouts/admin.twig' %}
+{% block title %}E-Mail{% endblock %}
+{% block content %}
+{% set old = old|default({}) %}
+{% set selected_scope = old.scope|default(admin_is_full ? 'all' : (fachbereiche[0] is defined ? 'fb:' ~ fachbereiche[0].id : '')) %}
+
+<section class="card app-card">
+    <div class="card-body p-4">
+        <h1 class="h2 mb-3">E-Mail an Angemeldete</h1>
+
+        {% if flash %}<div class="alert alert-success">{{ flash }}</div>{% endif %}
+        {% if error %}<div class="alert alert-danger">{{ error }}</div>{% endif %}
+
+        {% if fachbereiche is empty %}
+            <p class="mb-0">Keine Fachbereiche verfügbar.</p>
+        {% else %}
+            <form method="post" action="/administrator/email" class="email-compose" id="email-compose-form">
+                {{ csrf.field()|raw }}
+
+                <div class="mb-3">
+                    <label class="form-label" for="scope">Empfängerkreis</label>
+                    <select class="form-select" name="scope" id="scope" required>
+                        {% if admin_is_full %}
+                            <option value="all" {% if selected_scope == 'all' %}selected{% endif %}>
+                                Alle ({{ all_count }} Adressen)
+                            </option>
+                        {% endif %}
+                        {% for fb in fachbereiche %}
+                            <option value="fb:{{ fb.id }}" {% if selected_scope == 'fb:' ~ fb.id %}selected{% endif %}>
+                                {{ fb.name }} ({{ recipient_counts[fb.id]|default(0) }} Empfänger)
+                                {% if fb.email %}· FB-Mail hinterlegt{% else %}· keine FB-Mail{% endif %}
+                            </option>
+                        {% endfor %}
+                    </select>
+                </div>
+
+                <div class="form-check mb-3">
+                    <input class="form-check-input" type="checkbox" name="include_fachbereich" value="1" id="include_fachbereich"
+                           {% if old.include_fachbereich|default(false) %}checked{% endif %}>
+                    <label class="form-check-label" for="include_fachbereich">
+                        Fachbereich-E-Mail mitadressieren (falls hinterlegt)
+                    </label>
+                </div>
+
+                <div class="mb-3">
+                    <label class="form-label" for="subject">Betreff</label>
+                    <input class="form-control" type="text" name="subject" id="subject" required maxlength="200"
+                           value="{{ old.subject|default('') }}">
+                </div>
+
+                <div class="mb-3">
+                    <span class="form-label d-block">Platzhalter</span>
+                    <div class="email-placeholders" role="group" aria-label="Platzhalter einfügen">
+                        <button type="button" class="btn btn-outline-secondary btn-sm" data-placeholder="{name}">{name}</button>
+                        <button type="button" class="btn btn-outline-secondary btn-sm" data-placeholder="{email}">{email}</button>
+                        <button type="button" class="btn btn-outline-secondary btn-sm" data-placeholder="{fachbereich}">{fachbereich}</button>
+                        <button type="button" class="btn btn-outline-secondary btn-sm" data-placeholder="{schiene}">{schiene}</button>
+                        <button type="button" class="btn btn-outline-secondary btn-sm" data-placeholder="{from_name}">{from_name}</button>
+                        <button type="button" class="btn btn-outline-secondary btn-sm" data-placeholder="{logo}">{logo}</button>
+                        <button type="button" class="btn btn-outline-secondary btn-sm" data-placeholder="{cancel_url}">{cancel_url}</button>
+                        <button type="button" class="btn btn-outline-secondary btn-sm" data-placeholder="{thanks_url}">{thanks_url}</button>
+                    </div>
+                    <div class="form-text mt-1">Klicken fügt den Platzhalter an der Cursor-Position ein (Betreff oder Text).</div>
+                </div>
+
+                <div class="mb-3">
+                    <label class="form-label" for="body">Nachricht</label>
+                    <textarea class="form-control rich-editor" name="body" id="body" rows="12">{{ old.body|default('') }}</textarea>
+                </div>
+
+                <button type="submit" class="btn btn-primary"
+                        onclick="return confirm('E-Mail jetzt an die gewählten Empfänger senden?');">
+                    E-Mail senden
+                </button>
+            </form>
+        {% endif %}
+    </div>
+</section>
+{% endblock %}
+
+{% block scripts %}
+{% include 'partials/rich_editor_assets.twig' %}
+<script>
+(function () {
+    var form = document.getElementById('email-compose-form');
+    if (!form) return;
+
+    var subject = document.getElementById('subject');
+    var body = document.getElementById('body');
+    var lastField = 'body';
+
+    if (subject) {
+        subject.addEventListener('focus', function () { lastField = 'subject'; });
+    }
+    if (body) {
+        body.addEventListener('focus', function () { lastField = 'body'; });
+    }
+
+    function insertIntoInput(input, text) {
+        if (!input) return;
+        var start = input.selectionStart ?? input.value.length;
+        var end = input.selectionEnd ?? input.value.length;
+        var value = input.value;
+        input.value = value.slice(0, start) + text + value.slice(end);
+        var pos = start + text.length;
+        input.focus();
+        if (typeof input.setSelectionRange === 'function') {
+            input.setSelectionRange(pos, pos);
+        }
+    }
+
+    function insertPlaceholder(text) {
+        if (lastField === 'subject') {
+            insertIntoInput(subject, text);
+            return;
+        }
+        if (typeof tinymce !== 'undefined') {
+            var editor = tinymce.get('body');
+            if (editor) {
+                editor.focus();
+                editor.insertContent(text);
+                editor.save();
+                return;
+            }
+        }
+        insertIntoInput(body, text);
+    }
+
+    form.querySelectorAll('[data-placeholder]').forEach(function (btn) {
+        btn.addEventListener('click', function () {
+            insertPlaceholder(btn.getAttribute('data-placeholder') || '');
+        });
+    });
+})();
+</script>
+{% endblock %}

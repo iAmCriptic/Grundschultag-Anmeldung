@@ -14,34 +14,58 @@
         {% if fachbereiche is empty %}
             <p class="mb-0">Noch keine Fachbereiche vorhanden.</p>
         {% else %}
+            {% if admin_is_full and fachbereiche|length > 1 %}
+                <p class="text-muted small mb-3">Reihenfolge per Drag &amp; Drop ändern.</p>
+            {% endif %}
             <div class="table-responsive">
                 <table class="table table-striped align-middle">
                     <thead>
                         <tr>
+                            {% if admin_is_full %}<th class="fachbereich-drag-col" aria-hidden="true"></th>{% endif %}
                             <th>Name</th>
-                            <th>Status</th>
                             <th>Schienen</th>
                             <th></th>
                         </tr>
                     </thead>
-                    <tbody>
+                    <tbody id="fachbereiche-list"
+                           {% if admin_is_full and fachbereiche|length > 1 %}
+                           data-reorder-url="/administrator/fachbereiche/reorder"
+                           data-csrf="{{ csrf.token() }}"
+                           {% endif %}>
                     {% for fb in fachbereiche %}
-                        <tr>
-                            <td>{{ fb.name }}</td>
-                            <td>{% if fb.aktiv %}aktiv{% else %}inaktiv{% endif %}</td>
+                        <tr class="fachbereich-row" data-id="{{ fb.id }}">
+                            {% if admin_is_full %}
+                                <td class="fachbereich-drag-col">
+                                    {% if fachbereiche|length > 1 %}
+                                        <button type="button" class="fachbereich-drag" title="Ziehen zum Sortieren" aria-label="Ziehen zum Sortieren" draggable="true">⋮⋮</button>
+                                    {% endif %}
+                                </td>
+                            {% endif %}
+                            <td>
+                                <span class="status-icon-row">
+                                    {% if fb.aktiv %}
+                                        <i class="bi bi-check-circle-fill status-icon status-icon-ok" title="Aktiv" aria-label="Aktiv"></i>
+                                    {% else %}
+                                        <i class="bi bi-x-circle-fill status-icon status-icon-off" title="Inaktiv" aria-label="Inaktiv"></i>
+                                    {% endif %}
+                                    <span>{{ fb.name }}</span>
+                                </span>
+                            </td>
                             <td>{{ fb.schienen|length }}</td>
-                            <td class="d-flex flex-wrap gap-2 align-items-center">
-                                <a href="/administrator/fachbereiche/{{ fb.id }}">Bearbeiten</a>
-                                {% if admin_is_full %}
-                                    <form method="post" action="/administrator/fachbereiche/{{ fb.id }}/toggle" class="d-inline">
-                                        {{ csrf.field()|raw }}
-                                        <button type="submit" class="btn btn-link btn-sm p-0">{% if fb.aktiv %}Deaktivieren{% else %}Aktivieren{% endif %}</button>
-                                    </form>
-                                    <form method="post" action="/administrator/fachbereiche/{{ fb.id }}/delete" class="d-inline" onsubmit="return confirm('Wirklich löschen?');">
-                                        {{ csrf.field()|raw }}
-                                        <button type="submit" class="btn btn-link btn-sm p-0 text-danger">Löschen</button>
-                                    </form>
-                                {% endif %}
+                            <td>
+                                <div class="fachbereich-actions">
+                                    <a class="btn btn-outline-primary btn-sm" href="/administrator/fachbereiche/{{ fb.id }}">Bearbeiten</a>
+                                    {% if admin_is_full %}
+                                        <form method="post" action="/administrator/fachbereiche/{{ fb.id }}/toggle">
+                                            {{ csrf.field()|raw }}
+                                            <button type="submit" class="btn btn-outline-secondary btn-sm">{% if fb.aktiv %}Deaktivieren{% else %}Aktivieren{% endif %}</button>
+                                        </form>
+                                        <form method="post" action="/administrator/fachbereiche/{{ fb.id }}/delete" onsubmit="return confirm('Wirklich löschen?');">
+                                            {{ csrf.field()|raw }}
+                                            <button type="submit" class="btn btn-outline-danger btn-sm">Löschen</button>
+                                        </form>
+                                    {% endif %}
+                                </div>
                             </td>
                         </tr>
                     {% endfor %}
@@ -51,4 +75,82 @@
         {% endif %}
     </div>
 </section>
+{% endblock %}
+
+{% block scripts %}
+{% if admin_is_full and fachbereiche|length > 1 %}
+<script>
+(function () {
+    var list = document.getElementById('fachbereiche-list');
+    if (!list || !list.getAttribute('data-reorder-url')) return;
+
+    var dragEl = null;
+    var reorderUrl = list.getAttribute('data-reorder-url');
+    var csrf = list.getAttribute('data-csrf');
+
+    list.querySelectorAll('.fachbereich-row').forEach(function (row) {
+        var handle = row.querySelector('.fachbereich-drag');
+        if (!handle) return;
+
+        handle.addEventListener('dragstart', function (e) {
+            dragEl = row;
+            row.classList.add('is-dragging');
+            if (e.dataTransfer) {
+                e.dataTransfer.effectAllowed = 'move';
+                e.dataTransfer.setData('text/plain', row.getAttribute('data-id') || '');
+            }
+        });
+        handle.addEventListener('dragend', function () {
+            row.classList.remove('is-dragging');
+            list.querySelectorAll('.fachbereich-row').forEach(function (r) {
+                r.classList.remove('drag-over');
+            });
+            dragEl = null;
+            saveOrder();
+        });
+        row.addEventListener('dragover', function (e) {
+            e.preventDefault();
+            if (!dragEl || dragEl === row) return;
+            row.classList.add('drag-over');
+            var rect = row.getBoundingClientRect();
+            var before = (e.clientY - rect.top) < rect.height / 2;
+            if (before) {
+                list.insertBefore(dragEl, row);
+            } else {
+                list.insertBefore(dragEl, row.nextSibling);
+            }
+        });
+        row.addEventListener('dragleave', function () {
+            row.classList.remove('drag-over');
+        });
+        row.addEventListener('drop', function (e) {
+            e.preventDefault();
+            row.classList.remove('drag-over');
+        });
+    });
+
+    function saveOrder() {
+        var ids = Array.prototype.map.call(list.querySelectorAll('.fachbereich-row'), function (row) {
+            return parseInt(row.getAttribute('data-id'), 10);
+        }).filter(function (id) { return id > 0; });
+
+        var body = new URLSearchParams();
+        body.set('_csrf', csrf || '');
+        ids.forEach(function (id) { body.append('order[]', String(id)); });
+
+        fetch(reorderUrl, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/x-www-form-urlencoded',
+                'X-Requested-With': 'XMLHttpRequest'
+            },
+            body: body.toString(),
+            credentials: 'same-origin'
+        }).catch(function () {
+            // still usable; next page load shows previous order
+        });
+    }
+})();
+</script>
+{% endif %}
 {% endblock %}

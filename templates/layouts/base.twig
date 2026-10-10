@@ -14,7 +14,7 @@
 </head>
 <body class="{% block body_class %}{% endblock %}">
     <header class="site-header border-bottom bg-white">
-        <div class="container site-header-inner">
+        <div class="container-fluid site-header-inner">
             {% if site_logo %}
                 <a class="site-logo-link" href="/">
                     <img class="site-logo" src="/uploads/{{ site_logo }}" alt="{{ app_name }}">
@@ -26,9 +26,15 @@
     <main class="container py-4">
         {% block content %}{% endblock %}
     </main>
-    <footer class="site-footer py-4 text-muted">
-        <div class="container d-flex flex-wrap justify-content-between align-items-center gap-2">
-            <span>{{ app_name }}</span>
+    <footer class="site-footer text-muted">
+        <div class="container-fluid site-footer-inner">
+            <span class="site-footer-brand">{{ app_name }}</span>
+            <div class="site-footer-secure">
+                <a href="https://www.sitelock.com/verify.php?site=merian.online" target="SiteLock" rel="noopener noreferrer"
+                   onclick="window.open(this.href,'SiteLock','width=600,height=600,left=160,top=170'); return false;">
+                    <img alt="SiteLock" title="SiteLock" src="https://shield.sitelock.com/shield/merian.online" width="128" height="65">
+                </a>
+            </div>
             <nav class="legal-links" aria-label="Rechtliches">
                 {% if impressum_href %}
                     <a href="{{ impressum_href }}"{% if impressum_external %} target="_blank" rel="noopener noreferrer"{% endif %}>Impressum</a>
@@ -44,12 +50,6 @@
                 {% if impressum_href or datenschutz_href or about_href %}<span class="legal-sep" aria-hidden="true">·</span>{% endif %}
                 <a href="#" data-cookie-settings>Cookie-Einstellungen</a>
             </nav>
-        </div>
-        <div class="container mt-3 text-center">
-            <a href="https://www.sitelock.com/verify.php?site=merian.online" target="SiteLock" rel="noopener noreferrer"
-               onclick="window.open(this.href,'SiteLock','width=600,height=600,left=160,top=170'); return false;">
-                <img class="img-fluid" alt="SiteLock" title="SiteLock" src="https://shield.sitelock.com/shield/merian.online" width="128" height="65">
-            </a>
         </div>
     </footer>
 
@@ -96,7 +96,7 @@
     </div>
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js" integrity="sha384-YvpcrYf0tY3lHB60NNkmXc5s9fDVZLESaAA55NDzOxhy9GkcIdslK1eN7N6jIeHz" crossorigin="anonymous"></script>
-    <script src="/assets/js/cookie-consent.js" defer></script>
+    <script src="/assets/js/cookie-consent.js?v={{ asset_version|default('1') }}" defer></script>
     {% block scripts %}{% endblock %}
 </body>
 </html>

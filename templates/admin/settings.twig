@@ -1,28 +1,55 @@
 {% extends 'layouts/admin.twig' %}
 {% block title %}Einstellungen{% endblock %}
 {% block content %}
-{% set tab = active_tab|default('darstellung') %}
+{% set tab = active_tab|default('uebersicht') %}
 <section class="settings-page">
-    <header class="settings-page-header">
-        <h1 class="h2 mb-1">Einstellungen</h1>
-        <p class="text-muted mb-0">Darstellung, Zeitraum, Benutzer, Updates und Datenverwaltung</p>
-    </header>
+    {% if flash %}<div class="alert alert-success mb-3">{{ flash }}</div>{% endif %}
+    {% if error %}<div class="alert alert-danger mb-3">{{ error }}</div>{% endif %}
 
-    {% if flash %}<div class="alert alert-success mt-3 mb-0">{{ flash }}</div>{% endif %}
-    {% if error %}<div class="alert alert-danger mt-3 mb-0">{{ error }}</div>{% endif %}
-
-    <div class="settings-shell mt-4">
-        <nav class="settings-nav" aria-label="Einstellungsbereiche">
-            <button type="button" class="settings-nav-item{% if tab == 'darstellung' %} is-active{% endif %}" data-settings-tab="darstellung">Darstellung</button>
-            <button type="button" class="settings-nav-item{% if tab == 'zeitraum' %} is-active{% endif %}" data-settings-tab="zeitraum">Zeitraum</button>
-            <button type="button" class="settings-nav-item{% if tab == 'email' %} is-active{% endif %}" data-settings-tab="email">E-Mail</button>
-            <button type="button" class="settings-nav-item{% if tab == 'rechtliches' %} is-active{% endif %}" data-settings-tab="rechtliches">Rechtliches</button>
-            <button type="button" class="settings-nav-item{% if tab == 'benutzer' %} is-active{% endif %}" data-settings-tab="benutzer">Benutzer</button>
-            <button type="button" class="settings-nav-item{% if tab == 'update' %} is-active{% endif %}" data-settings-tab="update">Update</button>
-            <button type="button" class="settings-nav-item settings-nav-item-danger{% if tab == 'daten' %} is-active{% endif %}" data-settings-tab="daten">Daten</button>
-        </nav>
-
+    <div class="settings-shell">
         <div class="settings-panels">
+            <div class="settings-panel{% if tab == 'uebersicht' %} is-active{% endif %}" data-panel="uebersicht">
+                <h2 class="settings-panel-title">Einstellungen</h2>
+                <p class="settings-panel-lead">Wählen Sie einen Bereich – oder nutzen Sie das Menü links.</p>
+                <div class="settings-overview-grid">
+                    <a class="settings-overview-card" href="/administrator/einstellungen?tab=darstellung">
+                        <i class="bi bi-palette2" aria-hidden="true"></i>
+                        <span class="settings-overview-title">Darstellung</span>
+                        <span class="settings-overview-text">Titel, Logo und Willkommensseite</span>
+                    </a>
+                    <a class="settings-overview-card" href="/administrator/einstellungen?tab=zeitraum">
+                        <i class="bi bi-calendar-range" aria-hidden="true"></i>
+                        <span class="settings-overview-title">Zeitraum</span>
+                        <span class="settings-overview-text">Anmeldezeitraum festlegen</span>
+                    </a>
+                    <a class="settings-overview-card" href="/administrator/einstellungen?tab=email">
+                        <i class="bi bi-envelope" aria-hidden="true"></i>
+                        <span class="settings-overview-title">E-Mail</span>
+                        <span class="settings-overview-text">Bestätigungsmail und Absender</span>
+                    </a>
+                    <a class="settings-overview-card" href="/administrator/einstellungen?tab=rechtliches">
+                        <i class="bi bi-shield-check" aria-hidden="true"></i>
+                        <span class="settings-overview-title">Rechtliches</span>
+                        <span class="settings-overview-text">Impressum und Datenschutz</span>
+                    </a>
+                    <a class="settings-overview-card" href="/administrator/einstellungen?tab=benutzer">
+                        <i class="bi bi-people" aria-hidden="true"></i>
+                        <span class="settings-overview-title">Benutzer</span>
+                        <span class="settings-overview-text">Administratoren verwalten</span>
+                    </a>
+                    <a class="settings-overview-card" href="/administrator/einstellungen?tab=update">
+                        <i class="bi bi-arrow-repeat" aria-hidden="true"></i>
+                        <span class="settings-overview-title">Update</span>
+                        <span class="settings-overview-text">Version prüfen und aktualisieren</span>
+                    </a>
+                    <a class="settings-overview-card settings-overview-card-danger" href="/administrator/einstellungen?tab=daten">
+                        <i class="bi bi-trash3" aria-hidden="true"></i>
+                        <span class="settings-overview-title">Daten</span>
+                        <span class="settings-overview-text">Anmeldungen zurücksetzen</span>
+                    </a>
+                </div>
+            </div>
+
             {# —— Darstellung / Zeitraum / E-Mail / Rechtliches —— #}
             <form method="post" action="/administrator/einstellungen" enctype="multipart/form-data" id="settings-main-form">
                 {{ csrf.field()|raw }}
@@ -393,38 +420,9 @@
 {% include 'partials/rich_editor_assets.twig' %}
 <script>
 (function () {
-    var navItems = document.querySelectorAll('[data-settings-tab]');
-    var panels = document.querySelectorAll('[data-panel]');
-    var activeTabInput = document.getElementById('active_tab');
     var roleSelect = document.getElementById('role');
     var fbField = document.getElementById('fachbereich-field');
     var fbSelect = document.getElementById('fachbereich_id');
-
-    function showTab(name) {
-        navItems.forEach(function (btn) {
-            btn.classList.toggle('is-active', btn.getAttribute('data-settings-tab') === name);
-        });
-        panels.forEach(function (panel) {
-            panel.classList.toggle('is-active', panel.getAttribute('data-panel') === name);
-        });
-        if (activeTabInput) {
-            activeTabInput.value = name;
-        }
-        if (history.replaceState) {
-            var url = new URL(window.location.href);
-            url.searchParams.set('tab', name);
-            history.replaceState(null, '', url.toString());
-        }
-        if (window.AppRichEditor) {
-            window.setTimeout(window.AppRichEditor.refresh, 50);
-        }
-    }
-
-    navItems.forEach(function (btn) {
-        btn.addEventListener('click', function () {
-            showTab(btn.getAttribute('data-settings-tab'));
-        });
-    });
 
     function syncRole() {
         if (!roleSelect || !fbField) return;

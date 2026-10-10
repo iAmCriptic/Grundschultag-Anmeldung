@@ -75,8 +75,8 @@ final class FachbereichController
                 'name' => $name,
                 'teaser_text' => $this->html->sanitize((string) ($data['teaser_text'] ?? '')),
                 'teaser_bild' => $bild,
+                'email' => $this->normalizeEmail($data['email'] ?? null),
                 'aktiv' => isset($data['aktiv']) ? 1 : 0,
-                'sortierung' => (int) ($data['sortierung'] ?? 0),
             ]);
             $_SESSION['flash'] = 'Fachbereich angelegt.';
             return $response->withHeader('Location', '/administrator/fachbereiche/' . $id)->withStatus(302);
@@ -142,8 +142,9 @@ final class FachbereichController
                 'name' => trim((string) ($data['name'] ?? '')),
                 'teaser_text' => $this->html->sanitize((string) ($data['teaser_text'] ?? '')),
                 'teaser_bild' => $bild,
+                'email' => $this->normalizeEmail($data['email'] ?? null),
                 'aktiv' => isset($data['aktiv']) ? 1 : 0,
-                'sortierung' => (int) ($data['sortierung'] ?? 0),
+                'sortierung' => (int) ($fb['sortierung'] ?? 0),
             ]);
             $_SESSION['flash'] = 'Fachbereich gespeichert.';
             return $response->withHeader('Location', '/administrator/fachbereiche/' . $id)->withStatus(302);
@@ -165,6 +166,44 @@ final class FachbereichController
         }
 
         $this->fachbereiche->toggle((int) $args['id']);
+        return $response->withHeader('Location', '/administrator/fachbereiche')->withStatus(302);
+    }
+
+    public function reorder(Request $request, Response $response): Response
+    {
+        $denied = $this->requireFullAdmin($response);
+        if ($denied !== null) {
+            $isAjax = strtolower($request->getHeaderLine('X-Requested-With')) === 'xmlhttprequest';
+            if ($isAjax) {
+                $response->getBody()->write(json_encode(['ok' => false, 'error' => 'Keine Berechtigung.'], JSON_THROW_ON_ERROR));
+                return $response->withHeader('Content-Type', 'application/json')->withStatus(403);
+            }
+            return $denied;
+        }
+
+        $data = (array) $request->getParsedBody();
+        $order = $data['order'] ?? [];
+        if (!is_array($order)) {
+            $order = [];
+        }
+
+        try {
+            $this->fachbereiche->reorder(array_map('intval', $order));
+            $isAjax = strtolower($request->getHeaderLine('X-Requested-With')) === 'xmlhttprequest';
+            if ($isAjax) {
+                $response->getBody()->write(json_encode(['ok' => true], JSON_THROW_ON_ERROR));
+                return $response->withHeader('Content-Type', 'application/json');
+            }
+            $_SESSION['flash'] = 'Reihenfolge gespeichert.';
+        } catch (\Throwable $e) {
+            $isAjax = strtolower($request->getHeaderLine('X-Requested-With')) === 'xmlhttprequest';
+            if ($isAjax) {
+                $response->getBody()->write(json_encode(['ok' => false, 'error' => $e->getMessage()], JSON_THROW_ON_ERROR));
+                return $response->withHeader('Content-Type', 'application/json')->withStatus(400);
+            }
+            $_SESSION['flash'] = $e->getMessage();
+        }
+
         return $response->withHeader('Location', '/administrator/fachbereiche')->withStatus(302);
     }
 
@@ -315,5 +354,17 @@ final class FachbereichController
             'error' => UPLOAD_ERR_OK,
             'size' => $file->getSize() ?? 0,
         ], 'fb');
+    }
+
+    private function normalizeEmail(mixed $value): ?string
+    {
+        $email = trim((string) ($value ?? ''));
+        if ($email === '') {
+            return null;
+        }
+        if (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
+            throw new \RuntimeException('Bitte eine gültige E-Mail-Adresse für den Fachbereich angeben.');
+        }
+        return strtolower($email);
     }
 }

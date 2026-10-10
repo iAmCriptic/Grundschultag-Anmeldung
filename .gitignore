@@ -2,6 +2,8 @@
 /.env
 /storage/install.lock
 /storage/tmp/
+/storage/login_throttle/
+/storage/twig_cache/
 /public/uploads/*
 !/public/uploads/.htaccess
 !/public/uploads/.gitkeep

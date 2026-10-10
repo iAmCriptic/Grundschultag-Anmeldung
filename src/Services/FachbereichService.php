@@ -72,25 +72,57 @@ final class FachbereichService
         return $row ?: null;
     }
 
-    /** @param array{name:string,teaser_text:?string,teaser_bild:?string,aktiv:int,sortierung:int} $data */
+    public function nextSortierung(): int
+    {
+        return (int) $this->pdo->query('SELECT COALESCE(MAX(sortierung), -1) FROM fachbereiche')->fetchColumn() + 1;
+    }
+
+    /**
+     * @param array{
+     *     name:string,
+     *     teaser_text:?string,
+     *     teaser_bild:?string,
+     *     email:?string,
+     *     aktiv:int,
+     *     sortierung?:int
+     * } $data
+     */
     public function create(array $data): int
     {
+        if (!isset($data['sortierung'])) {
+            $data['sortierung'] = $this->nextSortierung();
+        }
+        if (!array_key_exists('email', $data)) {
+            $data['email'] = null;
+        }
         $stmt = $this->pdo->prepare(
-            'INSERT INTO fachbereiche (name, teaser_text, teaser_bild, aktiv, sortierung)
-             VALUES (:name, :teaser_text, :teaser_bild, :aktiv, :sortierung)'
+            'INSERT INTO fachbereiche (name, teaser_text, teaser_bild, email, aktiv, sortierung)
+             VALUES (:name, :teaser_text, :teaser_bild, :email, :aktiv, :sortierung)'
         );
         $stmt->execute($data);
         return (int) $this->pdo->lastInsertId();
     }
 
-    /** @param array{name:string,teaser_text:?string,teaser_bild:?string,aktiv:int,sortierung:int} $data */
+    /**
+     * @param array{
+     *     name:string,
+     *     teaser_text:?string,
+     *     teaser_bild:?string,
+     *     email:?string,
+     *     aktiv:int,
+     *     sortierung:int
+     * } $data
+     */
     public function update(int $id, array $data): void
     {
         $data['id'] = $id;
+        if (!array_key_exists('email', $data)) {
+            $data['email'] = null;
+        }
         $stmt = $this->pdo->prepare(
             'UPDATE fachbereiche
              SET name = :name, teaser_text = :teaser_text, teaser_bild = :teaser_bild,
-                 aktiv = :aktiv, sortierung = :sortierung
+                 email = :email, aktiv = :aktiv, sortierung = :sortierung
              WHERE id = :id'
         );
         $stmt->execute($data);
@@ -100,6 +132,33 @@ final class FachbereichService
     {
         $this->pdo->prepare('UPDATE fachbereiche SET aktiv = IF(aktiv = 1, 0, 1) WHERE id = :id')
             ->execute(['id' => $id]);
+    }
+
+    /**
+     * @param list<int> $orderedIds
+     */
+    public function reorder(array $orderedIds): void
+    {
+        $existing = $this->all();
+        $existingIds = array_map(static fn (array $row): int => (int) $row['id'], $existing);
+        $orderedIds = array_values(array_unique(array_map('intval', $orderedIds)));
+
+        if ($orderedIds === [] || count($orderedIds) !== count($existingIds)) {
+            throw new RuntimeException('Ungültige Fachbereich-Reihenfolge.');
+        }
+        foreach ($orderedIds as $id) {
+            if (!in_array($id, $existingIds, true)) {
+                throw new RuntimeException('Ungültige Fachbereich-Reihenfolge.');
+            }
+        }
+
+        $stmt = $this->pdo->prepare('UPDATE fachbereiche SET sortierung = :sort WHERE id = :id');
+        foreach ($orderedIds as $index => $id) {
+            $stmt->execute([
+                'sort' => $index,
+                'id' => $id,
+            ]);
+        }
     }
 
     public function delete(int $id): void

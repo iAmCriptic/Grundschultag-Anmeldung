@@ -1,15 +1,17 @@
 (function () {
-    function initRichEditors() {
-        if (typeof tinymce === 'undefined') {
-            return;
-        }
+    var baseContentStyle =
+        'body { font-family: system-ui, -apple-system, Segoe UI, sans-serif; font-size: 16px; line-height: 1.5; }';
+    var darkContentStyle =
+        'body { font-family: system-ui, -apple-system, Segoe UI, sans-serif; font-size: 16px; line-height: 1.5; background: #1a2420; color: #e8f0ec; }' +
+        'a { color: #8fd0b4; }';
 
-        var nodes = document.querySelectorAll('textarea.rich-editor');
-        if (!nodes.length) {
-            return;
-        }
+    function isDarkTheme() {
+        return document.documentElement.getAttribute('data-bs-theme') === 'dark';
+    }
 
-        tinymce.init({
+    function buildConfig() {
+        var dark = isDarkTheme();
+        return {
             selector: 'textarea.rich-editor',
             menubar: false,
             branding: false,
@@ -25,8 +27,9 @@
                 'bold italic underline strikethrough | forecolor backcolor | fontsize | ' +
                 'alignleft aligncenter alignright | bullist numlist | link | removeformat',
             font_size_formats: '12px 14px 16px 18px 20px 24px 28px 32px',
-            content_style:
-                'body { font-family: system-ui, -apple-system, Segoe UI, sans-serif; font-size: 16px; line-height: 1.5; }',
+            skin: dark ? 'oxide-dark' : 'oxide',
+            content_css: dark ? 'dark' : 'default',
+            content_style: dark ? darkContentStyle : baseContentStyle,
             setup: function (editor) {
                 editor.on('keydown', function (e) {
                     if (e.key === 'Enter' && !e.shiftKey && !e.ctrlKey && !e.altKey && !e.metaKey) {
@@ -38,7 +41,41 @@
                     editor.save();
                 });
             }
+        };
+    }
+
+    function initRichEditors() {
+        if (typeof tinymce === 'undefined') {
+            return;
+        }
+
+        var nodes = document.querySelectorAll('textarea.rich-editor');
+        if (!nodes.length) {
+            return;
+        }
+
+        tinymce.init(buildConfig());
+    }
+
+    function reinitRichEditors() {
+        if (typeof tinymce === 'undefined') {
+            return;
+        }
+
+        var nodes = document.querySelectorAll('textarea.rich-editor');
+        if (!nodes.length) {
+            return;
+        }
+
+        tinymce.editors.slice().forEach(function (editor) {
+            try {
+                editor.save();
+            } catch (e) {
+                // ignore
+            }
         });
+        tinymce.remove();
+        tinymce.init(buildConfig());
     }
 
     function refreshVisibleEditors() {
@@ -68,7 +105,12 @@
         window.setTimeout(refreshVisibleEditors, 50);
     });
 
+    document.documentElement.addEventListener('admin-theme-change', function () {
+        reinitRichEditors();
+    });
+
     window.AppRichEditor = {
-        refresh: refreshVisibleEditors
+        refresh: refreshVisibleEditors,
+        reinit: reinitRichEditors
     };
 })();
