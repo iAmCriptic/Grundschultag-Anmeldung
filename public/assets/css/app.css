@@ -9,14 +9,18 @@
 }
 
 html {
-    height: 100%;
+    min-height: 100%;
+    /* Am html, nicht am body: sonst endet der Gradient oft am Viewport und „bricht“ beim Scrollen. */
+    background-color: var(--bg-accent);
+    background-image:
+        radial-gradient(circle at top left, #fff8e8 0%, transparent 40%),
+        linear-gradient(160deg, var(--bg), var(--bg-accent));
+    background-repeat: no-repeat;
 }
 
 body {
     color: var(--ink);
-    background:
-        radial-gradient(circle at top left, #fff8e8 0%, transparent 40%),
-        linear-gradient(160deg, var(--bg), var(--bg-accent));
+    background: transparent;
     min-height: 100%;
     min-height: 100vh;
     min-height: 100dvh;
@@ -1079,10 +1083,15 @@ body > .site-footer {
     background: rgba(168, 90, 90, 0.12);
 }
 
-[data-bs-theme="dark"] body {
-    background:
+[data-bs-theme="dark"] html {
+    background-color: var(--bg-accent);
+    background-image:
         radial-gradient(circle at top left, rgba(47, 122, 95, 0.12) 0%, transparent 42%),
         linear-gradient(160deg, var(--bg), var(--bg-accent));
+}
+
+[data-bs-theme="dark"] body {
+    background: transparent;
 }
 
 [data-bs-theme="dark"] .site-header {
