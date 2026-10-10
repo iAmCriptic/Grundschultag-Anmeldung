@@ -75,8 +75,10 @@
 
             {# —— Indexierung —— #}
             <div class="settings-panel{% if tab == 'indexierung' %} is-active{% endif %}" data-panel="indexierung">
-                <h2 class="settings-panel-title">Indexierung</h2>
-                <p class="settings-panel-lead">Steuert, ob Suchmaschinen wie Google die öffentlichen Seiten erfassen dürfen.</p>
+                <h2 class="settings-panel-title">
+                    Indexierung
+                    {% include 'partials/settings_info.twig' with { text: 'Steuert, ob Suchmaschinen wie Google die öffentlichen Seiten erfassen dürfen.' } %}
+                </h2>
 
                 {% set indexing_on = settings.google_indexing|default('0') == '1' %}
                 <form method="post" action="/administrator/einstellungen/indexierung" data-autosave>
@@ -85,8 +87,10 @@
                         <div class="settings-option{% if indexing_on %} is-enabled{% endif %} mb-0">
                             <div class="settings-option-head">
                                 <div class="settings-option-copy">
-                                    <span class="settings-option-title">Google-Indexierung</span>
-                                    <span class="settings-option-text">Erlaubt Suchmaschinen, die öffentlichen Seiten zu indexieren</span>
+                                    <span class="settings-option-title">
+                                        Google-Indexierung
+                                        {% include 'partials/settings_info.twig' with { text: 'Erlaubt Suchmaschinen, die öffentlichen Seiten zu indexieren. Aus = noindex und robots.txt sperrt die Seite; Admin-Bereich bleibt ausgeschlossen.' } %}
+                                    </span>
                                 </div>
                                 <div class="form-check form-switch m-0 d-flex align-items-center gap-2" data-autosave-status>
                                     <input class="form-check-input" type="checkbox" role="switch" name="google_indexing" value="1" id="google_indexing"{% if indexing_on %} checked{% endif %}>
@@ -94,19 +98,19 @@
                                 </div>
                             </div>
                         </div>
-                        <p class="form-text mt-3 mb-0">
-                            Aus = <code>noindex</code> und <code>robots.txt</code> sperrt die Seite.
-                            An = Indexierung erlaubt; der Admin-Bereich bleibt ausgeschlossen.
-                        </p>
                     </div>
-                    <p class="text-muted small mb-0">Änderungen werden automatisch gespeichert.</p>
+                    <div class="mt-3">
+                        <button type="submit" class="btn btn-primary">Speichern</button>
+                    </div>
                 </form>
             </div>
 
             {# —— Bot-Schutz —— #}
             <div class="settings-panel{% if tab == 'bot-schutz' %} is-active{% endif %}" data-panel="bot-schutz">
-                <h2 class="settings-panel-title">Bot-Schutz</h2>
-                <p class="settings-panel-lead">Schützt Anmeldung und Stornierung vor Spam-Bots. Wählen Sie einen Anbieter und tragen Sie die Keys ein.</p>
+                <h2 class="settings-panel-title">
+                    Bot-Schutz
+                    {% include 'partials/settings_info.twig' with { text: 'Schützt Anmeldung und Stornierung vor Spam-Bots. Anbieter wählen und Keys eintragen.' } %}
+                </h2>
 
                 {% set bot_provider = settings.bot_protection_provider|default('off') %}
                 <form method="post" action="/administrator/einstellungen/bot-schutz" id="bot-protection-form" data-autosave>
@@ -150,11 +154,13 @@
                                    autocomplete="off" spellcheck="false">
                         </div>
                         <div class="mb-0">
-                            <label class="form-label" for="bot_protection_secret_key">Secret Key (geheim)</label>
+                            <label class="form-label" for="bot_protection_secret_key">
+                                Secret Key (geheim)
+                                {% include 'partials/settings_info.twig' with { text: 'Wird nur serverseitig zur Prüfung verwendet und nie öffentlich ausgegeben.' } %}
+                            </label>
                             <input class="form-control" type="password" name="bot_protection_secret_key" id="bot_protection_secret_key"
                                    value="{{ settings.bot_protection_secret_key|default('') }}"
                                    autocomplete="new-password" spellcheck="false">
-                            <div class="form-text">Wird nur serverseitig zur Prüfung verwendet und nie öffentlich ausgegeben.</div>
                         </div>
                     </div>
 
@@ -182,7 +188,9 @@
                         <p class="form-text mb-0">Turnstile ist oft unsichtbar und datenschutzfreundlicher als klassische Captchas.</p>
                     </div>
 
-                    <p class="text-muted small mb-0" data-autosave-status>Änderungen werden automatisch gespeichert.</p>
+                    <div class="mt-3">
+                        <button type="submit" class="btn btn-primary">Speichern</button>
+                    </div>
                 </form>
             </div>
 
@@ -193,8 +201,10 @@
                     <input type="hidden" name="active_tab" value="darstellung">
                     <input type="hidden" name="settings_section" value="darstellung">
 
-                    <h2 class="settings-panel-title">Darstellung</h2>
-                    <p class="settings-panel-lead">Öffentliche Anmeldung: Marke, Willkommen, Kopfzeile und Platzanzeige. Änderungen werden automatisch gespeichert.</p>
+                    <h2 class="settings-panel-title">
+                        Darstellung
+                        {% include 'partials/settings_info.twig' with { text: 'Öffentliche Anmeldung: Marke, Willkommen, Kopfzeile und Platzanzeige.' } %}
+                    </h2>
 
                     {% set capacity = settings.capacity_display|default('free_numbers') %}
                     {% set full_behavior = settings.full_item_behavior|default('open') %}
@@ -203,30 +213,39 @@
 
                     <div class="settings-block">
                         <div class="settings-block-heading">
-                            <h3 class="settings-block-title mb-0">Marke</h3>
-                            <p class="settings-block-hint">Titel, Untertitel und Logo in der Kopfzeile.</p>
+                            <h3 class="settings-block-title mb-0">
+                                Marke
+                                {% include 'partials/settings_info.twig' with { text: 'Titel, Untertitel und Logo in der Kopfzeile.' } %}
+                            </h3>
                         </div>
 
                         <div class="settings-brand-grid">
                             <div class="settings-brand-fields">
                                 <div class="mb-3">
-                                    <label class="form-label" for="site_title">Seitentitel</label>
+                                    <label class="form-label" for="site_title">
+                                        Seitentitel
+                                        {% include 'partials/settings_info.twig' with { text: 'Kopfzeile, Fußzeile und Willkommensseite.' } %}
+                                    </label>
                                     <input class="form-control" type="text" name="site_title" id="site_title" maxlength="150"
                                            value="{{ settings.site_title|default(app_name, true) }}"
                                            placeholder="z. B. Merian Schule" required>
-                                    <div class="form-text">Kopfzeile, Fußzeile und Willkommensseite.</div>
                                 </div>
                                 <div class="mb-0">
-                                    <label class="form-label" for="site_subtitle">Untertitel <span class="text-muted fw-normal">(optional)</span></label>
+                                    <label class="form-label" for="site_subtitle">
+                                        Untertitel <span class="text-muted fw-normal">(optional)</span>
+                                        {% include 'partials/settings_info.twig' with { text: 'Erscheint unter dem Titel in der Kopfzeile.' } %}
+                                    </label>
                                     <input class="form-control" type="text" name="site_subtitle" id="site_subtitle" maxlength="150"
                                            value="{{ settings.site_subtitle|default('') }}"
                                            placeholder="z. B. Anmeldung zum Grundschultag">
-                                    <div class="form-text">Erscheint unter dem Titel in der Kopfzeile.</div>
                                 </div>
                             </div>
 
                             <div class="settings-brand-logo">
-                                <label class="form-label" for="site_logo">Logo</label>
+                                <label class="form-label" for="site_logo">
+                                    Logo
+                                    {% include 'partials/settings_info.twig' with { text: 'Oben links, empfohlen: PNG oder WebP.' } %}
+                                </label>
                                 {% if settings.site_logo|default('') %}
                                     <div class="settings-preview settings-preview-logo mb-2">
                                         <img class="thumb" src="/uploads/{{ settings.site_logo }}" alt="Aktuelles Logo">
@@ -239,15 +258,16 @@
                                     <p class="settings-empty-hint mb-2">Noch kein Logo hinterlegt.</p>
                                 {% endif %}
                                 <input class="form-control" type="file" name="site_logo" id="site_logo" accept="image/jpeg,image/png,image/webp,image/gif">
-                                <div class="form-text">Oben links, empfohlen: PNG oder WebP.</div>
                             </div>
                         </div>
                     </div>
 
                     <div class="settings-block">
                         <div class="settings-block-heading">
-                            <h3 class="settings-block-title mb-0">Willkommensseite</h3>
-                            <p class="settings-block-hint">Inhalt der Startseite vor der Anmeldung.</p>
+                            <h3 class="settings-block-title mb-0">
+                                Willkommensseite
+                                {% include 'partials/settings_info.twig' with { text: 'Inhalt der Startseite vor der Anmeldung.' } %}
+                            </h3>
                         </div>
                         <div class="mb-3">
                             <label class="form-label" for="welcome_text">Willkommenstext</label>
@@ -270,15 +290,19 @@
 
                     <div class="settings-block">
                         <div class="settings-block-heading">
-                            <h3 class="settings-block-title mb-0">Kopfzeile</h3>
-                            <p class="settings-block-hint">Optionale Aktionen rechts oben auf den öffentlichen Seiten.</p>
+                            <h3 class="settings-block-title mb-0">
+                                Kopfzeile
+                                {% include 'partials/settings_info.twig' with { text: 'Optionale Aktionen rechts oben auf den öffentlichen Seiten.' } %}
+                            </h3>
                         </div>
 
                         <div class="settings-option{% if homepage_on %} is-enabled{% endif %}">
                             <div class="settings-option-head">
                                 <div class="settings-option-copy">
-                                    <span class="settings-option-title">Button „Zur Homepage“</span>
-                                    <span class="settings-option-text">Link zur Schul- oder Vereinswebsite</span>
+                                    <span class="settings-option-title">
+                                        Button „Zur Homepage“
+                                        {% include 'partials/settings_info.twig' with { text: 'Link zur Schul- oder Vereinswebsite.' } %}
+                                    </span>
                                 </div>
                                 <div class="form-check form-switch m-0">
                                     <input class="form-check-input" type="checkbox" role="switch" name="homepage_button_enabled" value="1" id="homepage_button_enabled"{% if homepage_on %} checked{% endif %} aria-controls="homepage-button-fields">
@@ -288,9 +312,11 @@
                             <div class="settings-option-body" id="homepage-button-fields">
                                 <div class="row g-3">
                                     <div class="col-md-7">
-                                        <label class="form-label" for="homepage_button_url">URL</label>
+                                        <label class="form-label" for="homepage_button_url">
+                                            URL
+                                            {% include 'partials/settings_info.twig' with { text: 'Muss mit http:// oder https:// beginnen.' } %}
+                                        </label>
                                         <input class="form-control" type="url" name="homepage_button_url" id="homepage_button_url" placeholder="https://…" value="{{ settings.homepage_button_url|default('') }}">
-                                        <div class="form-text">Muss mit http:// oder https:// beginnen.</div>
                                     </div>
                                     <div class="col-md-5">
                                         <label class="form-label" for="homepage_button_label">Button-Text</label>
@@ -305,8 +331,10 @@
                         <div class="settings-option{% if theme_on %} is-enabled{% endif %} mb-0">
                             <div class="settings-option-head">
                                 <div class="settings-option-copy">
-                                    <span class="settings-option-title">Hell- / Dunkelmodus</span>
-                                    <span class="settings-option-text">Umschalter in der Kopfzeile; Auswahl bleibt im Browser gespeichert</span>
+                                    <span class="settings-option-title">
+                                        Hell- / Dunkelmodus
+                                        {% include 'partials/settings_info.twig' with { text: 'Umschalter in der Kopfzeile; Auswahl bleibt im Browser gespeichert.' } %}
+                                    </span>
                                 </div>
                                 <div class="form-check form-switch m-0">
                                     <input class="form-check-input" type="checkbox" role="switch" name="public_theme_toggle" value="1" id="public_theme_toggle"{% if theme_on %} checked{% endif %}>
@@ -318,8 +346,10 @@
 
                     <div class="settings-block">
                         <div class="settings-block-heading">
-                            <h3 class="settings-block-title mb-0">Platzanzeige</h3>
-                            <p class="settings-block-hint">Was Teilnehmer bei Fachbereichs- und Schienenwahl sehen.</p>
+                            <h3 class="settings-block-title mb-0">
+                                Platzanzeige
+                                {% include 'partials/settings_info.twig' with { text: 'Was Teilnehmer bei Fachbereichs- und Schienenwahl sehen.' } %}
+                            </h3>
                         </div>
 
                         <fieldset class="settings-choice-group mb-4">
@@ -349,7 +379,10 @@
                         </fieldset>
 
                         <fieldset class="settings-choice-group mb-0">
-                            <legend class="settings-choice-legend">Wenn ausgebucht</legend>
+                            <legend class="settings-choice-legend">
+                                Wenn ausgebucht
+                                {% include 'partials/settings_info.twig' with { text: 'Ausgebucht wird weiterhin als Status angezeigt.' } %}
+                            </legend>
                             <div class="settings-segment" role="radiogroup" aria-label="Wenn ausgebucht">
                                 <input class="settings-segment-input" type="radio" name="full_item_behavior" id="full_open" value="open"{% if full_behavior == 'open' %} checked{% endif %}>
                                 <label class="settings-segment-btn" for="full_open">
@@ -363,11 +396,12 @@
                                     <span>Ausgrauen</span>
                                 </label>
                             </div>
-                            <p class="form-text mt-2 mb-0">Ausgebucht wird weiterhin als Status angezeigt.</p>
                         </fieldset>
                     </div>
 
-                    <p class="text-muted small mb-0" data-autosave-status>Änderungen werden automatisch gespeichert.</p>
+                    <div class="mt-3">
+                        <button type="submit" class="btn btn-primary">Speichern</button>
+                    </div>
                 </form>
             </div>
 
@@ -378,8 +412,10 @@
                     <input type="hidden" name="active_tab" value="zeitraum">
                     <input type="hidden" name="settings_section" value="zeitraum">
 
-                    <h2 class="settings-panel-title">Anmeldezeitraum</h2>
-                    <p class="settings-panel-lead">Außerhalb dieses Zeitfensters ist die öffentliche Anmeldung geschlossen. Änderungen werden automatisch gespeichert.</p>
+                    <h2 class="settings-panel-title">
+                        Anmeldezeitraum
+                        {% include 'partials/settings_info.twig' with { text: 'Außerhalb dieses Zeitfensters ist die öffentliche Anmeldung geschlossen. Leer lassen = kein Limit.' } %}
+                    </h2>
 
                     <div class="row g-3 settings-block">
                         <div class="col-md-6">
@@ -391,7 +427,9 @@
                             <input class="form-control" type="datetime-local" name="registration_end" id="registration_end" value="{{ settings.registration_end|default('')|replace({' ': 'T'})|slice(0, 16) }}">
                         </div>
                     </div>
-                    <p class="text-muted small mb-0" data-autosave-status>Leer lassen = kein Limit.</p>
+                    <div class="mt-3">
+                        <button type="submit" class="btn btn-primary">Speichern</button>
+                    </div>
                 </form>
             </div>
 
@@ -402,8 +440,10 @@
                     <input type="hidden" name="active_tab" value="email">
                     <input type="hidden" name="settings_section" value="email">
 
-                    <h2 class="settings-panel-title">E-Mail</h2>
-                    <p class="settings-panel-lead">Absender, Betreff und Text für Bestätigungsmails. Platzhalter werden beim Versand ersetzt. Änderungen werden automatisch gespeichert.</p>
+                    <h2 class="settings-panel-title">
+                        E-Mail
+                        {% include 'partials/settings_info.twig' with { text: 'Absender, Betreff und Text für Bestätigungsmails. Platzhalter werden beim Versand ersetzt.' } %}
+                    </h2>
 
                     <div class="settings-block">
                         <div class="mb-3">
@@ -415,30 +455,23 @@
                             <input class="form-control" type="text" name="mail_from_name" id="mail_from_name" value="{{ settings.mail_from_name|default('') }}">
                         </div>
                         <div class="mb-3">
-                            <label class="form-label" for="mail_subject">Betreff</label>
+                            <label class="form-label" for="mail_subject">
+                                Betreff
+                                {% include 'partials/settings_info.twig' with { text: 'Platzhalter möglich, z. B. {name}, {fachbereich}.' } %}
+                            </label>
                             <input class="form-control" type="text" name="mail_subject" id="mail_subject" value="{{ settings.mail_subject|default('') }}">
-                            <div class="form-text">Platzhalter möglich, z.&nbsp;B. <code>{name}</code>, <code>{fachbereich}</code>.</div>
                         </div>
                         <div class="mb-0">
-                            <label class="form-label" for="mail_body">Mail-Text</label>
+                            <label class="form-label" for="mail_body">
+                                Mail-Text
+                                {% include 'partials/settings_info.twig' with { text: 'Platzhalter: {logo}, {name}, {email}, {fachbereich}, {schiene}, {cancel_url}, {thanks_url}, {from_name}. {logo} aus Darstellung; für Links z. B. {cancel_url} einfügen.' } %}
+                            </label>
                             <textarea class="form-control rich-editor" name="mail_body" id="mail_body" rows="14">{{ settings.mail_body|default(mail_body_default, true) }}</textarea>
-                            <div class="form-text mt-2">
-                                Formatierung wie auf der Website. Platzhalter:
-                                <code>{logo}</code>
-                                (Logo aus Darstellung),
-                                <code>{name}</code>,
-                                <code>{email}</code>,
-                                <code>{fachbereich}</code>,
-                                <code>{schiene}</code>,
-                                <code>{cancel_url}</code>,
-                                <code>{thanks_url}</code>,
-                                <code>{from_name}</code>
-                                — <code>{logo}</code> an die gewünschte Stelle im Text setzen;
-                                für Links z.&nbsp;B. URL <code>{cancel_url}</code> einfügen.
-                            </div>
                         </div>
                     </div>
-                    <p class="text-muted small mb-0" data-autosave-status>Änderungen werden automatisch gespeichert.</p>
+                    <div class="mt-3">
+                        <button type="submit" class="btn btn-primary">Speichern</button>
+                    </div>
                 </form>
             </div>
 
@@ -449,8 +482,10 @@
                     <input type="hidden" name="active_tab" value="rechtliches">
                     <input type="hidden" name="settings_section" value="rechtliches">
 
-                    <h2 class="settings-panel-title">Rechtliches</h2>
-                    <p class="settings-panel-lead">Entweder externe URL oder eigenen Text hinterlegen. Eine URL hat Vorrang. Änderungen werden automatisch gespeichert.</p>
+                    <h2 class="settings-panel-title">
+                        Rechtliches
+                        {% include 'partials/settings_info.twig' with { text: 'Entweder externe URL oder eigenen Text hinterlegen. Eine URL hat Vorrang.' } %}
+                    </h2>
 
                     <div class="settings-block">
                         <h3 class="settings-block-title">Impressum</h3>
@@ -477,22 +512,30 @@
                     </div>
 
                     <div class="settings-block">
-                        <h3 class="settings-block-title">Woher kommt diese Seite</h3>
-                        <p class="text-muted small mb-3">Erscheint als zusätzlicher Link im Fußbereich, z.&nbsp;B. für einen Hinweis auf die AG oder ein Dankeschön.</p>
+                        <h3 class="settings-block-title">
+                            Woher kommt diese Seite
+                            {% include 'partials/settings_info.twig' with { text: 'Zusätzlicher Link im Fußbereich, z. B. für einen Hinweis auf die AG oder ein Dankeschön.' } %}
+                        </h3>
                         <div class="mb-3">
-                            <label class="form-label" for="about_link_label">Linkname</label>
+                            <label class="form-label" for="about_link_label">
+                                Linkname
+                                {% include 'partials/settings_info.twig' with { text: 'Text des Links im Footer und Überschrift der Seite.' } %}
+                            </label>
                             <input class="form-control" type="text" name="about_link_label" id="about_link_label" maxlength="80"
                                    placeholder="Woher kommt diese Seite"
                                    value="{{ settings.about_link_label|default('Woher kommt diese Seite') }}">
-                            <div class="form-text">Text des Links im Footer und Überschrift der Seite.</div>
                         </div>
                         <div class="mb-0">
-                            <label class="form-label" for="about_text">Freitext</label>
+                            <label class="form-label" for="about_text">
+                                Freitext
+                                {% include 'partials/settings_info.twig' with { text: 'Leer lassen = Link wird nicht angezeigt.' } %}
+                            </label>
                             <textarea class="form-control rich-editor" name="about_text" id="about_text" rows="5">{{ settings.about_text|default('') }}</textarea>
-                            <div class="form-text">Leer lassen = Link wird nicht angezeigt.</div>
                         </div>
                     </div>
-                    <p class="text-muted small mb-0" data-autosave-status>Änderungen werden automatisch gespeichert.</p>
+                    <div class="mt-3">
+                        <button type="submit" class="btn btn-primary">Speichern</button>
+                    </div>
                 </form>
             </div>
 
@@ -578,8 +621,10 @@
 
             {# —— Update —— #}
             <div class="settings-panel{% if tab == 'update' %} is-active{% endif %}" data-panel="update">
-                <h2 class="settings-panel-title">Update</h2>
-                <p class="settings-panel-lead">Quelle einmal eintragen – sie wird dauerhaft gespeichert. Prüfen und Aktualisieren speichern die Quelle automatisch mit.</p>
+                <h2 class="settings-panel-title">
+                    Update
+                    {% include 'partials/settings_info.twig' with { text: 'Quelle einmal eintragen – sie wird dauerhaft gespeichert. Prüfen und Aktualisieren speichern die Quelle mit.' } %}
+                </h2>
 
                 {% set u = update_status|default({
                     repo_url: settings.update_repo_url|default(''),
@@ -600,20 +645,23 @@
 
                     <div class="settings-block">
                         <h3 class="settings-block-title">Update-Quelle</h3>
-                        <p class="text-muted small mb-3">Wird automatisch gespeichert und beim nächsten Besuch wiederverwendet.</p>
                         <div class="mb-3">
-                            <label class="form-label" for="update_repo_url">GitHub-Repository</label>
+                            <label class="form-label" for="update_repo_url">
+                                GitHub-Repository
+                                {% include 'partials/settings_info.twig' with { text: 'Öffentliches Repo, z. B. https://github.com/iAmCriptic/Grundschultag-Anmeldung' } %}
+                            </label>
                             <input class="form-control" type="url" name="update_repo_url" id="update_repo_url" required
                                    placeholder="https://github.com/iAmCriptic/Grundschultag-Anmeldung"
                                    value="{{ update_repo_value }}">
-                            <div class="form-text">Öffentliches Repo, z.&nbsp;B. <code>https://github.com/iAmCriptic/Grundschultag-Anmeldung</code></div>
                         </div>
                         <div class="mb-0">
                             <label class="form-label" for="update_ref">Branch oder Tag</label>
                             <input class="form-control" type="text" name="update_ref" id="update_ref" required
                                    placeholder="main" value="{{ u.ref|default('main') }}" maxlength="100" pattern="[A-Za-z0-9._/\-]+">
                         </div>
-                        <p class="text-muted small mt-3 mb-0" data-autosave-status>Änderungen werden automatisch gespeichert.</p>
+                        <div class="mt-3">
+                            <button type="submit" class="btn btn-primary">Speichern</button>
+                        </div>
                     </div>
 
                     <div class="settings-block">

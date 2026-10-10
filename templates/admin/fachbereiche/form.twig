@@ -21,11 +21,13 @@
                 <input class="form-control" type="text" name="name" id="name" required value="{{ fachbereich.name|default('') }}">
             </div>
             <div class="mb-3">
-                <label class="form-label" for="email">E-Mail Fachbereich</label>
+                <label class="form-label" for="email">
+                    E-Mail Fachbereich
+                    {% include 'partials/settings_info.twig' with { text: 'Optional. Wird für Listenversand und Mitadressierung bei Rundmails genutzt.' } %}
+                </label>
                 <input class="form-control" type="email" name="email" id="email"
                        value="{{ fachbereich.email|default('') }}"
                        placeholder="z. B. fachbereich@schule.de">
-                <div class="form-text">Optional. Wird für Listenversand und Mitadressierung bei Rundmails genutzt.</div>
             </div>
             <div class="mb-3">
                 <label class="form-label" for="teaser_text">Teaser-Text</label>
@@ -46,11 +48,7 @@
                 <input class="form-check-input" type="checkbox" name="aktiv" value="1" id="aktiv" {% if fachbereich is null or fachbereich.aktiv|default(1) %}checked{% endif %}>
                 <label class="form-check-label" for="aktiv">Aktiv</label>
             </div>
-            {% if fachbereich and fachbereich.id %}
-                <p class="text-muted small mb-0" data-autosave-status>Änderungen werden automatisch gespeichert.</p>
-            {% else %}
-                <button type="submit" class="btn btn-primary">Speichern</button>
-            {% endif %}
+            <button type="submit" class="btn btn-primary">Speichern</button>
         </form>
     </div>
 </section>
@@ -62,7 +60,7 @@
         {% if schienen is empty %}
             <p>Noch keine Schienen. Legen Sie mindestens eine an.</p>
         {% else %}
-            <p class="text-muted small mb-3">Reihenfolge per Drag &amp; Drop ändern. Name und Kapazität werden automatisch gespeichert.</p>
+            <p class="text-muted small mb-3">Reihenfolge per Drag &amp; Drop ändern.</p>
             <div id="schienen-list" class="schienen-list" data-reorder-url="/administrator/fachbereiche/{{ fachbereich.id }}/schienen/reorder" data-csrf="{{ csrf.token() }}">
                 {% for s in schienen %}
                     <div class="schiene-row" data-id="{{ s.id }}">
@@ -75,7 +73,8 @@
                             <div class="col-md-3">
                                 <input class="form-control" type="number" name="kapazitaet" value="{{ s.kapazitaet }}" min="1" required aria-label="Kapazität">
                             </div>
-                            <div class="col-md-3 d-flex align-items-center gap-2" data-autosave-status>
+                            <div class="col-md-3 d-flex align-items-center gap-2 flex-wrap" data-autosave-status>
+                                <button type="submit" class="btn btn-primary btn-sm">Speichern</button>
                                 <span class="text-muted small">{{ s.belegt }}/{{ s.kapazitaet }} belegt</span>
                             </div>
                         </form>

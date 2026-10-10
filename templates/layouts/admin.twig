@@ -323,6 +323,29 @@
     })();
     </script>
     <script src="/assets/js/admin-autosave.js?v={{ asset_version|default('1') }}" defer></script>
+    <script>
+    (function () {
+        function initSettingsTooltips(root) {
+            if (typeof bootstrap === 'undefined' || !bootstrap.Tooltip) {
+                return;
+            }
+            (root || document).querySelectorAll('[data-bs-toggle="tooltip"]').forEach(function (el) {
+                if (bootstrap.Tooltip.getInstance(el)) {
+                    return;
+                }
+                new bootstrap.Tooltip(el);
+            });
+        }
+        if (document.readyState === 'loading') {
+            document.addEventListener('DOMContentLoaded', function () {
+                initSettingsTooltips(document);
+            });
+        } else {
+            initSettingsTooltips(document);
+        }
+        window.AdminTooltips = { init: initSettingsTooltips };
+    })();
+    </script>
     {% block scripts %}{% endblock %}
 </body>
 </html>

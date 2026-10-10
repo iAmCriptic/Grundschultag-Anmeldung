@@ -90,6 +90,10 @@
                         <p class="register-summary-schiene mb-0" id="register-selected-schiene">{{ selected_schiene_name }}</p>
                     </div>
 
+                    {% if fachbereich.teaser_text %}
+                        <div class="mb-4 rich-content">{{ fachbereich.teaser_text|rich }}</div>
+                    {% endif %}
+
                     <div class="mb-3">
                         <label class="form-label" for="name">Vor &amp; Nachname</label>
                         <input class="form-control" type="text" name="name" id="name" required value="{{ old.name|default('') }}" autocomplete="name">
