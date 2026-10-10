@@ -1033,6 +1033,19 @@ body > .site-footer {
     --admin-hover-bg: #1f2c27;
     --admin-chip-bg: #24332c;
     --admin-avatar-bg: #2f7a5f;
+    /* Gewinnt gegen [data-bs-theme="dark"] body { background: transparent } */
+    background: var(--admin-page-bg);
+}
+
+/* Öffentlicher Gradient nicht hinter dem Admin durchscheinen lassen */
+html:has(body.admin-body) {
+    background: #e8ece9;
+    background-image: none;
+}
+
+html[data-bs-theme="dark"]:has(body.admin-body) {
+    background: #0f1412;
+    background-image: none;
 }
 
 [data-bs-theme="dark"] .admin-shell {
@@ -1083,14 +1096,15 @@ body > .site-footer {
     background: rgba(168, 90, 90, 0.12);
 }
 
-[data-bs-theme="dark"] html {
+/* Attribut sitzt auf <html> selbst – daher html[...], nicht [... ] html */
+html[data-bs-theme="dark"] {
     background-color: var(--bg-accent);
     background-image:
         radial-gradient(circle at top left, rgba(47, 122, 95, 0.12) 0%, transparent 42%),
         linear-gradient(160deg, var(--bg), var(--bg-accent));
 }
 
-[data-bs-theme="dark"] body {
+html[data-bs-theme="dark"] body {
     background: transparent;
 }
 
